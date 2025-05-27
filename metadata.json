@@ -1,0 +1,5 @@
+{
+  "name": "Txisteak.eus React App",
+  "description": "A web application to share and rate Basque jokes, built with React, TypeScript, and Tailwind CSS. Users can view jokes, vote on them, submit new jokes, and see rankings for jokes and submitters.",
+  "requestFramePermissions": []
+}
