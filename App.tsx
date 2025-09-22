@@ -300,7 +300,7 @@ const App: React.FC = () => {
           <section id="honi-buruz-atala" className="bg-white p-6 rounded-lg shadow-lg lg:col-span-1">
             <h2 className="text-2xl font-bold mb-4 text-red-600">Webguneari buruz</h2>
             <div className="space-y-3 text-gray-700">
-              <p>Ongi etorri Euskal Txisteak webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
+              <p>Ongi etorri Txisteak.eus webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
               <p>Webgunearen sorrera, Xanti eta Iñaki lagunak(txistegile amorratuak) haien umore beharra asetzeko nahiarekin sortu zen. Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
               <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko! Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.</p>
             </div>
