@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SubmitJokePayload } from '../types';
 import Button from './Button';
@@ -14,6 +13,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
   const [email, setEmail] = useState('');
   const [izena, setIzena] = useState('');
   const [abizenak, setAbizenak] = useState('');
+  const [pueblo, setPueblo] = useState(''); // New state for town/city
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +25,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
       setEmail('');
       setIzena('');
       setAbizenak('');
+      setPueblo(''); // Reset pueblo
       setFeedback(null);
       setFeedbackType(null);
       setIsSubmitting(false);
@@ -35,8 +36,8 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testua.trim() || !email.trim() || !izena.trim() || !abizenak.trim()) {
-      setFeedback('Beharrezko eremu guztiak bete behar dituzu.');
+    if (!testua.trim() || !email.trim() || !izena.trim() || !abizenak.trim() || !pueblo.trim()) {
+      setFeedback('Beharrezko eremu guztiak bete behar dituzu (Txistea, Izena, Abizenak, Herria, Posta Elektronikoa).');
       setFeedbackType('error');
       return;
     }
@@ -44,7 +45,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
     setFeedback('Bidaltzen...');
     setFeedbackType(null);
 
-    const result = await onSubmit({ testua, email, izena, abizenak });
+    const result = await onSubmit({ testua, email, izena, abizenak, pueblo }); // Include pueblo in submission
     setIsSubmitting(false);
     if (result) {
         setFeedback(result.message);
@@ -78,6 +79,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
               rows={4}
               className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
               required
+              aria-required="true"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -90,6 +92,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
                 onChange={(e) => setIzena(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
                 required
+                aria-required="true"
               />
             </div>
             <div>
@@ -101,8 +104,21 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
                 onChange={(e) => setAbizenak(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
                 required
+                aria-required="true"
               />
             </div>
+          </div>
+           <div className="mb-4">
+            <label htmlFor="pueblo" className="block text-sm font-medium text-gray-700 mb-1">Herria</label>
+            <input
+              type="text"
+              id="pueblo"
+              value={pueblo}
+              onChange={(e) => setPueblo(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+              required
+              aria-required="true"
+            />
           </div>
           <div className="mb-6">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Posta Elektronikoa</label>
@@ -113,6 +129,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
               required
+              aria-required="true"
             />
           </div>
           {feedback && (

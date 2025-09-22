@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import JokeDisplay from './components/JokeDisplay';
 import RankingList from './components/RankingList';
 import SubmitJokeModal from './components/SubmitJokeModal';
-// import Button from './components/Button'; // Button is used by other components, not directly here.
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
+import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
 
 const App: React.FC = () => {
   const [currentJoke, setCurrentJoke] = useState<Joke | null>(null);
@@ -17,25 +16,37 @@ const App: React.FC = () => {
   const [voteFeedbackType, setVoteFeedbackType] = useState<'success' | 'error' | null>(null);
   const [isVoting, setIsVoting] = useState<boolean>(false);
 
+  // Joke Ranking
   const [jokeRanking, setJokeRanking] = useState<Joke[]>([]);
   const [jokeRankingLoading, setJokeRankingLoading] = useState<boolean>(true);
   const [jokeRankingError, setJokeRankingError] = useState<string | null>(null);
-  const [jokeRankingLimit, setJokeRankingLimit] = useState<number>(5);
+  const [lastJokeDoc, setLastJokeDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreJokes, setHasMoreJokes] = useState<boolean>(true);
+  const JOKE_RANKING_LIMIT = 5;
 
-
+  // Submitter Ranking
   const [submitterRanking, setSubmitterRanking] = useState<Submitter[]>([]);
   const [submitterRankingLoading, setSubmitterRankingLoading] = useState<boolean>(true);
   const [submitterRankingError, setSubmitterRankingError] = useState<string | null>(null);
-  const [submitterRankingLimit, setSubmitterRankingLimit] = useState<number>(5);
+  const [lastSubmitterDoc, setLastSubmitterDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreSubmitters, setHasMoreSubmitters] = useState<boolean>(true);
+  const SUBMITTER_RANKING_LIMIT = 5;
+  
+  // Monthly Joke Ranking
+  const [monthlyJokeRanking, setMonthlyJokeRanking] = useState<Joke[]>([]);
+  const [monthlyJokeRankingLoading, setMonthlyJokeRankingLoading] = useState<boolean>(true);
+  const [monthlyJokeRankingError, setMonthlyJokeRankingError] = useState<string | null>(null);
+  const [lastMonthlyJokeDoc, setLastMonthlyJokeDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreMonthlyJokes, setHasMoreMonthlyJokes] = useState<boolean>(true);
+  const MONTHLY_JOKE_RANKING_LIMIT = 5;
+
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const loadJoke = useCallback(async () => {
     setJokeLoading(true);
     setJokeError(null);
-    setVoteFeedback(null); // Clear previous vote feedback when loading a new joke
+    setVoteFeedback(null);
     try {
       const jokeOrError = await api.fetchJoke();
       if ('error' in jokeOrError) {
@@ -52,63 +63,62 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const loadJokeRanking = useCallback(async (currentLimit: number, loadMore = false) => {
+  const loadInitialRankings = useCallback(async () => {
+    // Joke Ranking
     setJokeRankingLoading(true);
-    if (!loadMore) { // If not loading more, clear previous error
-        setJokeRankingError(null);
+    setJokeRankingError(null);
+    const jokeRankData = await api.fetchJokeRanking(JOKE_RANKING_LIMIT, null);
+    if ('error' in jokeRankData) {
+      setJokeRankingError(jokeRankData.error);
+      setJokeRanking([]);
+    } else {
+      setJokeRanking(jokeRankData.jokes);
+      setLastJokeDoc(jokeRankData.newLastVisible);
+      setHasMoreJokes(jokeRankData.jokes.length === JOKE_RANKING_LIMIT && !!jokeRankData.newLastVisible);
+      const totalApproved = await api.getTotalApprovedJokeCount();
+      setHasMoreJokes(jokeRankData.jokes.length < totalApproved);
     }
-    try {
-      const rankingOrError = await api.fetchJokeRanking(currentLimit); // Use currentLimit
-       if ('error' in rankingOrError) {
-        setJokeRankingError(rankingOrError.error);
-        if (!loadMore) setJokeRanking([]); // Clear ranking on error if not loading more
-      } else {
-        // For "loadMore", we fetch all items up to the new limit.
-        // The API mock currently returns only items for that limit, not incremental.
-        // So, we replace the list if the API gives us the full list up to `currentLimit`.
-        // If API were incremental: setJokeRanking(prev => loadMore ? [...prev, ...rankingOrError.filter(newItem => !prev.find(pItem => pItem.id === newItem.id))] : rankingOrError);
-        setJokeRanking(rankingOrError);
-        const totalJokes = await api.getTotalJokeCount();
-        setHasMoreJokes(rankingOrError.length < totalJokes);
-      }
-    } catch (err) {
-      setJokeRankingError('Errorea ranking-a kargatzean.');
-      if (!loadMore) setJokeRanking([]);
-    } finally {
-      setJokeRankingLoading(false);
-    }
-  }, []); // Removed jokeRanking.length as dependency, limit is passed directly
+    setJokeRankingLoading(false);
 
-  const loadSubmitterRanking = useCallback(async (currentLimit: number, loadMore = false) => {
+    // Submitter Ranking
     setSubmitterRankingLoading(true);
-    if (!loadMore) {
-        setSubmitterRankingError(null);
+    setSubmitterRankingError(null);
+    const submitterRankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, null);
+    if ('error' in submitterRankData) {
+      setSubmitterRankingError(submitterRankData.error);
+      setSubmitterRanking([]);
+    } else {
+      setSubmitterRanking(submitterRankData.submitters);
+      setLastSubmitterDoc(submitterRankData.newLastVisible);
+      setHasMoreSubmitters(submitterRankData.submitters.length === SUBMITTER_RANKING_LIMIT && !!submitterRankData.newLastVisible);
+      const totalSubmitters = await api.getTotalSubmitterCount();
+      setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
     }
-    try {
-      const rankingOrError = await api.fetchSubmitterRanking(currentLimit);
-       if ('error' in rankingOrError) {
-        setSubmitterRankingError(rankingOrError.error);
-        if (!loadMore) setSubmitterRanking([]);
-      } else {
-        // Similar to joke ranking, assuming API returns full list up to currentLimit
-        setSubmitterRanking(rankingOrError);
-        const totalSubmitters = await api.getTotalSubmitterCount();
-        setHasMoreSubmitters(rankingOrError.length < totalSubmitters);
-      }
-    } catch (err) {
-      setSubmitterRankingError('Errorea txistegileen ranking-a kargatzean.');
-      if (!loadMore) setSubmitterRanking([]);
-    } finally {
-      setSubmitterRankingLoading(false);
+    setSubmitterRankingLoading(false);
+    
+    // Monthly Joke Ranking
+    setMonthlyJokeRankingLoading(true);
+    setMonthlyJokeRankingError(null);
+    const monthlyRankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, null);
+    if ('error' in monthlyRankData) {
+        setMonthlyJokeRankingError(monthlyRankData.error);
+        setMonthlyJokeRanking([]);
+    } else {
+        setMonthlyJokeRanking(monthlyRankData.jokes);
+        setLastMonthlyJokeDoc(monthlyRankData.newLastVisible);
+        setHasMoreMonthlyJokes(monthlyRankData.jokes.length === MONTHLY_JOKE_RANKING_LIMIT && !!monthlyRankData.newLastVisible);
+        const totalMonthly = await api.getTotalMonthlyJokeCount();
+        setHasMoreMonthlyJokes(monthlyRankData.jokes.length < totalMonthly);
     }
-  }, []); // Removed submitterRanking.length
+    setMonthlyJokeRankingLoading(false);
+
+  }, []);
+
 
   useEffect(() => {
     loadJoke();
-    loadJokeRanking(jokeRankingLimit);
-    loadSubmitterRanking(submitterRankingLimit);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Initial load
+    loadInitialRankings();
+  }, [loadJoke, loadInitialRankings]);
 
   const handleVote = async (voteType: VoteType) => {
     if (!currentJoke || isVoting) return;
@@ -116,21 +126,27 @@ const App: React.FC = () => {
     setVoteFeedback(null);
     try {
       const response = await api.voteJoke(currentJoke.id, voteType);
-      if ('error'in response) {
-         setVoteFeedback(response.error);
-         setVoteFeedbackType('error');
+      if ('error' in response) {
+        setVoteFeedback(response.error);
+        setVoteFeedbackType('error');
       } else {
         setVoteFeedback(response.message);
         setVoteFeedbackType('success');
-        // Reload current joke
-        await loadJoke();
-        // Reset and reload ONLY submitter ranking
-        // setJokeRanking([]); // REMOVED - Do not reset joke ranking
-        // await loadJokeRanking(jokeRankingLimit, false);  // REMOVED - Do not reload joke ranking
-        
-        // To update submitter ranking, we need to fetch it again with the current limit
-        // We should ensure the submitter ranking list is fresh
-        await loadSubmitterRanking(submitterRankingLimit, false);
+        // No need to call loadJoke() immediately, as score updates in rankings.
+        // The current joke display will reflect new votes after a full ranking reload if it's still the chosen one.
+        // Or, update currentJoke state directly if possible with new vote counts.
+        // For simplicity, we can reload current joke for immediate feedback on its score too
+        if (currentJoke) {
+            const updatedJoke = {
+                ...currentJoke,
+                boto_positiboak: voteType === 'gora' ? currentJoke.boto_positiboak + 1 : currentJoke.boto_positiboak,
+                boto_negatiboak: voteType === 'behera' ? currentJoke.boto_negatiboak + 1 : currentJoke.boto_negatiboak,
+            };
+            // Recalculate score (or better, get it from API response if voteJoke returned updated joke)
+            // For now, let's keep it simple and rely on rankings refresh or a new joke fetch.
+             await loadJoke();
+        }
+        await loadInitialRankings(); // Reload all rankings as scores might have changed
       }
     } catch (err) {
       setVoteFeedback('Errorea bozkatzean.');
@@ -150,30 +166,73 @@ const App: React.FC = () => {
       if ('error' in response) {
         return { success: false, message: response.error };
       }
-      // Reload rankings after successful submission
-      await loadJokeRanking(jokeRankingLimit, false); 
-      await loadSubmitterRanking(submitterRankingLimit, false);
-      // Optionally, load a new joke or the submitted joke if API provided it
-      // For now, let's just reload a random joke.
-      await loadJoke();
+      // Reload submitter ranking as a new submitter might have been added or stats updated.
+      setSubmitterRankingLoading(true);
+      const submitterRankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, null);
+      if ('error' in submitterRankData) {
+        setSubmitterRankingError(submitterRankData.error);
+      } else {
+        setSubmitterRanking(submitterRankData.submitters);
+        setLastSubmitterDoc(submitterRankData.newLastVisible);
+        const totalSubmitters = await api.getTotalSubmitterCount();
+        setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
+      }
+      setSubmitterRankingLoading(false);
+      
+      await loadJoke(); // Load a new random joke
       return { success: response.success, message: response.message };
     } catch (err) {
       return { success: false, message: 'Errore bat gertatu da txistea bidaltzean.' };
     }
   };
 
-  const handleLoadMoreJokes = () => {
-    const newLimit = jokeRankingLimit + 5;
-    setJokeRankingLimit(newLimit);
-    loadJokeRanking(newLimit, true); 
+  const handleLoadMoreJokes = async () => {
+    if (!hasMoreJokes || jokeRankingLoading) return;
+    setJokeRankingLoading(true);
+    const rankData = await api.fetchJokeRanking(JOKE_RANKING_LIMIT, lastJokeDoc);
+    if ('error' in rankData) {
+      setJokeRankingError(rankData.error);
+    } else {
+      setJokeRanking(prev => [...prev, ...rankData.jokes]);
+      setLastJokeDoc(rankData.newLastVisible);
+      // setHasMoreJokes(rankData.jokes.length === JOKE_RANKING_LIMIT && !!rankData.newLastVisible);
+       const totalApproved = await api.getTotalApprovedJokeCount();
+       setHasMoreJokes((jokeRanking.length + rankData.jokes.length) < totalApproved);
+    }
+    setJokeRankingLoading(false);
   };
   
-  const handleLoadMoreSubmitters = () => {
-    const newLimit = submitterRankingLimit + 5;
-    setSubmitterRankingLimit(newLimit);
-    loadSubmitterRanking(newLimit, true);
+  const handleLoadMoreSubmitters = async () => {
+    if (!hasMoreSubmitters || submitterRankingLoading) return;
+    setSubmitterRankingLoading(true);
+    const rankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, lastSubmitterDoc);
+    if ('error' in rankData) {
+      setSubmitterRankingError(rankData.error);
+    } else {
+      setSubmitterRanking(prev => [...prev, ...rankData.submitters]);
+      setLastSubmitterDoc(rankData.newLastVisible);
+      // setHasMoreSubmitters(rankData.submitters.length === SUBMITTER_RANKING_LIMIT && !!rankData.newLastVisible);
+      const totalSubmitters = await api.getTotalSubmitterCount();
+      setHasMoreSubmitters((submitterRanking.length + rankData.submitters.length) < totalSubmitters);
+    }
+    setSubmitterRankingLoading(false);
   };
 
+  const handleLoadMoreMonthlyJokes = async () => {
+    if (!hasMoreMonthlyJokes || monthlyJokeRankingLoading) return;
+    setMonthlyJokeRankingLoading(true);
+    const rankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, lastMonthlyJokeDoc);
+    if ('error' in rankData) {
+        setMonthlyJokeRankingError(rankData.error);
+    } else {
+        setMonthlyJokeRanking(prev => [...prev, ...rankData.jokes]);
+        setLastMonthlyJokeDoc(rankData.newLastVisible);
+        // setHasMoreMonthlyJokes(rankData.jokes.length === MONTHLY_JOKE_RANKING_LIMIT && !!rankData.newLastVisible);
+        const totalMonthly = await api.getTotalMonthlyJokeCount();
+        setHasMoreMonthlyJokes((monthlyJokeRanking.length + rankData.jokes.length) < totalMonthly);
+    }
+    setMonthlyJokeRankingLoading(false);
+  };
 
   const renderJokeRankingItem = (joke: Joke, index: number) => (
     <li key={joke.id} className="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded">
@@ -181,6 +240,15 @@ const App: React.FC = () => {
       <p className="text-xs text-gray-500">
         Puntuazioa: {(joke.puntuazioa ?? 0).toFixed(3)} (👍{joke.boto_positiboak} / 👎{joke.boto_negatiboak})
       </p>
+      <p className="text-xs text-gray-500">
+        Data: {joke.sortze_data ? new Date(joke.sortze_data as string).toLocaleDateString('eu-ES') : 'N/A'}
+      </p>
+      {joke.submitted_by_izena && (
+        <p className="text-xs text-gray-500 mt-1">
+          Egilea: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
+          {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}
+        </p>
+      )}
     </li>
   );
 
@@ -218,6 +286,15 @@ const App: React.FC = () => {
               hasMore={hasMoreJokes}
               error={jokeRankingError}
             />
+            <RankingList<Joke>
+              title="Hilabete Honetako Txiste Onenak"
+              items={monthlyJokeRanking}
+              renderItem={renderJokeRankingItem}
+              isLoading={monthlyJokeRankingLoading}
+              onLoadMore={handleLoadMoreMonthlyJokes}
+              hasMore={hasMoreMonthlyJokes}
+              error={monthlyJokeRankingError}
+            />
              <RankingList<Submitter>
               title="Txistegile Onenen Sailkapena"
               items={submitterRanking}
@@ -234,7 +311,7 @@ const App: React.FC = () => {
             <div className="space-y-3 text-gray-700">
               <p>Ongi etorri Euskal Txisteak webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
               <p>Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
-              <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko!</p>
+              <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko! Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.</p>
             </div>
           </section>
         </div>

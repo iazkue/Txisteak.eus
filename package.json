@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^11.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -16,5 +17,18 @@
     "@types/node": "^22.14.0",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
-  }
+  },
+  "description": "This contains everything you need to run your app locally.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iazkue/Txisteak.eus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iazkue/Txisteak.eus/issues"
+  },
+  "homepage": "https://github.com/iazkue/Txisteak.eus#readme"
 }
