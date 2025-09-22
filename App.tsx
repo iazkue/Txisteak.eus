@@ -225,7 +225,7 @@ const App: React.FC = () => {
         Puntuazioa: {(joke.puntuazioa ?? 0).toFixed(3)} (👍{joke.boto_positiboak} / 👎{joke.boto_negatiboak})
       </p>
       <p className="text-xs text-gray-500">
-        Data: {joke.sortze_data ? new Date(joke.sortze_data as string).toLocaleDateString('eu-ES') : 'N/A'}
+        Data: {joke.sortze_data ? new Date(joke.sortze_data as string).toLocaleDateString('eu-EUS') : 'N/A'}
       </p>
       {joke.submitted_by_izena && (
         <p className="text-xs text-gray-500 mt-1">
