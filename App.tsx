@@ -254,6 +254,7 @@ const App: React.FC = () => {
           isLoading={jokeLoading}
           error={jokeError}
           onVote={handleVote}
+          onLoadNextJoke={loadJoke}
           voteFeedback={voteFeedback}
           voteFeedbackType={voteFeedbackType}
           isVoting={isVoting}
