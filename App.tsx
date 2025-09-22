@@ -229,7 +229,7 @@ const App: React.FC = () => {
         Data: {joke.sortze_data ? new Date(joke.sortze_data as string).toLocaleDateString('eu-ES') : 'N/A'}
       </p>
       {joke.submitted_by_izena && (
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500">
           Egilea: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
           {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}
         </p>

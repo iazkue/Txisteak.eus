@@ -63,7 +63,7 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
         <div className="mb-4 text-sm text-gray-600">
           <br />
           <p>
-            Bidalia: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
+            {joke.submitted_by_izena} {joke.submitted_by_abizenak}
             {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}
           </p>
         </div>
