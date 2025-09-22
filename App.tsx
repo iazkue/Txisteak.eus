@@ -269,7 +269,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <RankingList<Joke>
-              title="Txiste Onenen Sailkapena"
+              title="Txiste onenen sailkapena"
               items={jokeRanking}
               renderItem={renderJokeRankingItem}
               isLoading={jokeRankingLoading}
@@ -278,7 +278,7 @@ const App: React.FC = () => {
               error={jokeRankingError}
             />
             <RankingList<Joke>
-              title="Hilabete Honetako Txiste Onenak"
+              title="Hilabete honetako txiste onenak"
               items={monthlyJokeRanking}
               renderItem={renderJokeRankingItem}
               isLoading={monthlyJokeRankingLoading}
@@ -287,7 +287,7 @@ const App: React.FC = () => {
               error={monthlyJokeRankingError}
             />
             <RankingList<Submitter>
-              title="Txistegile Onenen Sailkapena"
+              title="Txistegile onenen sailkapena"
               items={submitterRanking}
               renderItem={renderSubmitterRankingItem}
               isLoading={submitterRankingLoading}
@@ -298,10 +298,10 @@ const App: React.FC = () => {
           </div>
 
           <section id="honi-buruz-atala" className="bg-white p-6 rounded-lg shadow-lg lg:col-span-1">
-            <h2 className="text-2xl font-bold mb-4 text-red-600">Webguneari Buruz</h2>
+            <h2 className="text-2xl font-bold mb-4 text-red-600">Webguneari buruz</h2>
             <div className="space-y-3 text-gray-700">
               <p>Ongi etorri Euskal Txisteak webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
-              <p>Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
+              <p>Webgunearen sorrera, Xanti eta Iñaki lagunak(txistegile amorratuak) haien umore beharra asetzeko nahiarekin sortu zen. Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
               <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko! Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.</p>
             </div>
           </section>
