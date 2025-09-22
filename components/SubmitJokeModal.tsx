@@ -25,7 +25,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
       setEmail('');
       setIzena('');
       setAbizenak('');
-      setPueblo(''); // Reset pueblo
+      setPueblo(''); // Reset herria
       setFeedback(null);
       setFeedbackType(null);
       setIsSubmitting(false);

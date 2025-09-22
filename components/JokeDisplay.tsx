@@ -55,13 +55,13 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
 
   return (
     <section id="txiste-erakuslea" className="bg-white p-6 rounded-lg shadow-lg text-center">
-      <h2 className="text-2xl font-bold mb-4 text-red-600">Eguneko Txistea</h2>
-      <div id="txiste-edukia" className="min-h-[100px] mb-2 text-lg text-gray-700 flex justify-center items-center">
+      <div id="txiste-edukia" className="min-h-[100px] mb-2 text-lg text-gray-700 whitespace-pre-line flex justify-center items-center">
         {contentArea}
       </div>
       
       {!isLoading && !error && joke && joke.submitted_by_izena && (
         <div className="mb-4 text-sm text-gray-600">
+          <br />
           <p>
             Bidalia: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
             {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}

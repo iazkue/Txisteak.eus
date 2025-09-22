@@ -220,7 +220,8 @@ const App: React.FC = () => {
   // --- Render Item Functions ---
   const renderJokeRankingItem = (joke: Joke, index: number) => (
     <li key={joke.id} className="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded">
-      <p className="text-sm text-gray-700">{index + 1}. {joke.testua}</p>
+      <p className="text-sm whitespace-pre-line text-gray-700"> {joke.testua}</p>
+      <br />
       <p className="text-xs text-gray-500">
         Puntuazioa: {(joke.puntuazioa ?? 0).toFixed(3)} (👍{joke.boto_positiboak} / 👎{joke.boto_negatiboak})
       </p>
