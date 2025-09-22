@@ -7,8 +7,10 @@ import SubmitJokeModal from './components/SubmitJokeModal';
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
 import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
+import Button from './components/Button';
 
 const App: React.FC = () => {
+  // Main joke display state
   const [currentJoke, setCurrentJoke] = useState<Joke | null>(null);
   const [jokeLoading, setJokeLoading] = useState<boolean>(true);
   const [jokeError, setJokeError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ const App: React.FC = () => {
   const [voteFeedbackType, setVoteFeedbackType] = useState<'success' | 'error' | null>(null);
   const [isVoting, setIsVoting] = useState<boolean>(false);
 
-  // Joke Ranking
+  // Joke Ranking state
   const [jokeRanking, setJokeRanking] = useState<Joke[]>([]);
   const [jokeRankingLoading, setJokeRankingLoading] = useState<boolean>(true);
   const [jokeRankingError, setJokeRankingError] = useState<string | null>(null);
@@ -24,7 +26,7 @@ const App: React.FC = () => {
   const [hasMoreJokes, setHasMoreJokes] = useState<boolean>(true);
   const JOKE_RANKING_LIMIT = 5;
 
-  // Submitter Ranking
+  // Submitter Ranking state
   const [submitterRanking, setSubmitterRanking] = useState<Submitter[]>([]);
   const [submitterRankingLoading, setSubmitterRankingLoading] = useState<boolean>(true);
   const [submitterRankingError, setSubmitterRankingError] = useState<string | null>(null);
@@ -32,14 +34,13 @@ const App: React.FC = () => {
   const [hasMoreSubmitters, setHasMoreSubmitters] = useState<boolean>(true);
   const SUBMITTER_RANKING_LIMIT = 5;
   
-  // Monthly Joke Ranking
+  // Monthly Joke Ranking state
   const [monthlyJokeRanking, setMonthlyJokeRanking] = useState<Joke[]>([]);
   const [monthlyJokeRankingLoading, setMonthlyJokeRankingLoading] = useState<boolean>(true);
   const [monthlyJokeRankingError, setMonthlyJokeRankingError] = useState<string | null>(null);
   const [lastMonthlyJokeDoc, setLastMonthlyJokeDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreMonthlyJokes, setHasMoreMonthlyJokes] = useState<boolean>(true);
   const MONTHLY_JOKE_RANKING_LIMIT = 5;
-
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
@@ -74,7 +75,6 @@ const App: React.FC = () => {
     } else {
       setJokeRanking(jokeRankData.jokes);
       setLastJokeDoc(jokeRankData.newLastVisible);
-      setHasMoreJokes(jokeRankData.jokes.length === JOKE_RANKING_LIMIT && !!jokeRankData.newLastVisible);
       const totalApproved = await api.getTotalApprovedJokeCount();
       setHasMoreJokes(jokeRankData.jokes.length < totalApproved);
     }
@@ -90,7 +90,6 @@ const App: React.FC = () => {
     } else {
       setSubmitterRanking(submitterRankData.submitters);
       setLastSubmitterDoc(submitterRankData.newLastVisible);
-      setHasMoreSubmitters(submitterRankData.submitters.length === SUBMITTER_RANKING_LIMIT && !!submitterRankData.newLastVisible);
       const totalSubmitters = await api.getTotalSubmitterCount();
       setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
     }
@@ -106,7 +105,6 @@ const App: React.FC = () => {
     } else {
         setMonthlyJokeRanking(monthlyRankData.jokes);
         setLastMonthlyJokeDoc(monthlyRankData.newLastVisible);
-        setHasMoreMonthlyJokes(monthlyRankData.jokes.length === MONTHLY_JOKE_RANKING_LIMIT && !!monthlyRankData.newLastVisible);
         const totalMonthly = await api.getTotalMonthlyJokeCount();
         setHasMoreMonthlyJokes(monthlyRankData.jokes.length < totalMonthly);
     }
@@ -132,18 +130,12 @@ const App: React.FC = () => {
       } else {
         setVoteFeedback(response.message);
         setVoteFeedbackType('success');
-        // No need to call loadJoke() immediately, as score updates in rankings.
-        // The current joke display will reflect new votes after a full ranking reload if it's still the chosen one.
-        // Or, update currentJoke state directly if possible with new vote counts.
-        // For simplicity, we can reload current joke for immediate feedback on its score too
         if (currentJoke) {
             const updatedJoke = {
                 ...currentJoke,
                 boto_positiboak: voteType === 'gora' ? currentJoke.boto_positiboak + 1 : currentJoke.boto_positiboak,
                 boto_negatiboak: voteType === 'behera' ? currentJoke.boto_negatiboak + 1 : currentJoke.boto_negatiboak,
             };
-            // Recalculate score (or better, get it from API response if voteJoke returned updated joke)
-            // For now, let's keep it simple and rely on rankings refresh or a new joke fetch.
              await loadJoke();
         }
         await loadInitialRankings(); // Reload all rankings as scores might have changed
@@ -186,6 +178,7 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Load More Handlers for Rankings ---
   const handleLoadMoreJokes = async () => {
     if (!hasMoreJokes || jokeRankingLoading) return;
     setJokeRankingLoading(true);
@@ -195,7 +188,6 @@ const App: React.FC = () => {
     } else {
       setJokeRanking(prev => [...prev, ...rankData.jokes]);
       setLastJokeDoc(rankData.newLastVisible);
-      // setHasMoreJokes(rankData.jokes.length === JOKE_RANKING_LIMIT && !!rankData.newLastVisible);
        const totalApproved = await api.getTotalApprovedJokeCount();
        setHasMoreJokes((jokeRanking.length + rankData.jokes.length) < totalApproved);
     }
@@ -211,7 +203,6 @@ const App: React.FC = () => {
     } else {
       setSubmitterRanking(prev => [...prev, ...rankData.submitters]);
       setLastSubmitterDoc(rankData.newLastVisible);
-      // setHasMoreSubmitters(rankData.submitters.length === SUBMITTER_RANKING_LIMIT && !!rankData.newLastVisible);
       const totalSubmitters = await api.getTotalSubmitterCount();
       setHasMoreSubmitters((submitterRanking.length + rankData.submitters.length) < totalSubmitters);
     }
@@ -227,13 +218,13 @@ const App: React.FC = () => {
     } else {
         setMonthlyJokeRanking(prev => [...prev, ...rankData.jokes]);
         setLastMonthlyJokeDoc(rankData.newLastVisible);
-        // setHasMoreMonthlyJokes(rankData.jokes.length === MONTHLY_JOKE_RANKING_LIMIT && !!rankData.newLastVisible);
         const totalMonthly = await api.getTotalMonthlyJokeCount();
         setHasMoreMonthlyJokes((monthlyJokeRanking.length + rankData.jokes.length) < totalMonthly);
     }
     setMonthlyJokeRankingLoading(false);
   };
 
+  // --- Render Item Functions ---
   const renderJokeRankingItem = (joke: Joke, index: number) => (
     <li key={joke.id} className="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded">
       <p className="text-sm text-gray-700">{index + 1}. {joke.testua}</p>
@@ -277,7 +268,7 @@ const App: React.FC = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-             <RankingList<Joke>
+            <RankingList<Joke>
               title="Txiste Onenen Sailkapena"
               items={jokeRanking}
               renderItem={renderJokeRankingItem}
@@ -295,7 +286,7 @@ const App: React.FC = () => {
               hasMore={hasMoreMonthlyJokes}
               error={monthlyJokeRankingError}
             />
-             <RankingList<Submitter>
+            <RankingList<Submitter>
               title="Txistegile Onenen Sailkapena"
               items={submitterRanking}
               renderItem={renderSubmitterRankingItem}

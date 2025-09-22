@@ -1,22 +1,19 @@
-
+// src/firebase.js (o .ts)
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// ZURE Firebase proiektuaren konfigurazioarekin ordezkatu behar duzu.
-// Gomendagarria da ingurune-aldagaiak erabiltzea informazio hau gordetzeko.
+// Tu configuración de Firebase
 const firebaseConfig = {
-  apiKey: "ZURE_API_KEY",
-  authDomain: "zure-proiektua.firebaseapp.com",
-  projectId: "zure-proiektuaren-id",
-  storageBucket: "zure-proiektua.appspot.com",
-  messagingSenderId: "zure-sender-id",
-  appId: "zure-app-id",
-  measurementId: "zure-measurement-id"
+  apiKey: "TU_API_KEY", // Obtén esto de la consola de Firebase
+  authDomain: "txisteakeus.firebaseapp.com",
+  projectId: "txisteakeus",
+  storageBucket: "txisteakeus.appspot.com",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
 };
 
-
-// Initialize Firebase
+// Inicializa Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-export { db };
+// Obtén una instancia de Firestore
+export const db = getFirestore(app);
