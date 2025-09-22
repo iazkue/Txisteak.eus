@@ -77,64 +77,55 @@ export const voteJoke = async (jokeId: string, voteType: VoteType): Promise<Vote
   const jokeRef = doc(db, JOKES_COLLECTION, jokeId);
   try {
     await runTransaction(db, async (transaction) => {
+      // 1. READ PHASE: Perform all reads at the beginning.
       const jokeDoc = await transaction.get(jokeRef);
+
       if (!jokeDoc.exists()) {
         throw new Error('Txistea ez da aurkitu');
       }
 
-      const jokeData = jokeDoc.data() as Joke; 
+      const jokeData = jokeDoc.data();
       if (jokeData.pending_review) {
         throw new Error('Ezin da berrikuspenaren zain dagoen txiste bat bozkatu.');
       }
-      
-      let newPositiveVotes = jokeData.boto_positiboak;
-      let newNegativeVotes = jokeData.boto_negatiboak;
 
-      if (voteType === 'gora') {
-        newPositiveVotes++;
-      } else {
-        newNegativeVotes++;
+      let submitterRef = null;
+      let submitterDoc = null;
+      if (jokeData.submitted_by_email) {
+        submitterRef = doc(db, SUBMITTERS_COLLECTION, jokeData.submitted_by_email);
+        submitterDoc = await transaction.get(submitterRef); // Read submitter doc now
       }
-      
+
+      // 2. CALCULATION PHASE
+      const newPositiveVotes = jokeData.boto_positiboak + (voteType === 'gora' ? 1 : 0);
+      const newNegativeVotes = jokeData.boto_negatiboak + (voteType === 'behera' ? 1 : 0);
       const newScore = calculateScore(newPositiveVotes, newNegativeVotes);
+      
+      let newAverageScore = null;
+      if (submitterDoc && submitterDoc.exists()) {
+        const submitterData = submitterDoc.data();
+        // Efficiently calculate new average score without re-querying all jokes
+        const oldTotalScore = (submitterData.puntuazio_batazbestekoa || 0) * (submitterData.txiste_kopurua || 0);
+        const newTotalScore = oldTotalScore - jokeData.puntuazioa + newScore;
+        if (submitterData.txiste_kopurua > 0) {
+          newAverageScore = newTotalScore / submitterData.txiste_kopurua;
+        } else {
+          newAverageScore = 0;
+        }
+      }
+
+      // 3. WRITE PHASE: Perform all writes at the end.
       transaction.update(jokeRef, {
         boto_positiboak: newPositiveVotes,
         boto_negatiboak: newNegativeVotes,
         puntuazioa: newScore,
       });
 
-      if (jokeData.submitted_by_email) {
-        const submitterRef = doc(db, SUBMITTERS_COLLECTION, jokeData.submitted_by_email);
-        const submitterJokesQuery = query(
-          collection(db, JOKES_COLLECTION),
-          where('submitted_by_email', '==', jokeData.submitted_by_email),
-          where('pending_review', '==', false)
-        );
-        const submitterJokesSnapshot = await getDocs(submitterJokesQuery); 
-        
-        let totalScoreSum = 0;
-        let numJokesBySubmitter = 0;
-
-        submitterJokesSnapshot.forEach(docSnap => {
-            const jData = docSnap.data();
-            if (jData.pending_review === false) {
-                 if (docSnap.id === jokeId) {
-                    totalScoreSum += newScore;
-                } else {
-                    totalScoreSum += jData.puntuazioa;
-                }
-                numJokesBySubmitter++;
-            }
-        });
-        
-        const averageScore = numJokesBySubmitter > 0 ? totalScoreSum / numJokesBySubmitter : 0;
-        
-        const submitterDoc = await transaction.get(submitterRef);
-        if (submitterDoc.exists()) {
-            transaction.update(submitterRef, { puntuazio_batazbestekoa: averageScore });
-        }
+      if (submitterRef && newAverageScore !== null) {
+        transaction.update(submitterRef, { puntuazio_batazbestekoa: newAverageScore });
       }
     });
+
     return { success: true, message: 'Botoa erregistratu da!' };
   } catch (error: any) {
     console.error("Error voting joke:", error);
@@ -147,6 +138,7 @@ export const voteJoke = async (jokeId: string, voteType: VoteType): Promise<Vote
     return { error: error.message || 'Errore bat gertatu da bozkatzean.' };
   }
 };
+
 
 export const submitJoke = async (payload: SubmitJokePayload): Promise<SubmitResponse | ApiError> => {
   try {
