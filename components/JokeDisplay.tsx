@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Joke, VoteType } from '../types';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
@@ -8,12 +8,36 @@ interface JokeDisplayProps {
   isLoading: boolean;
   error: string | null;
   onVote: (voteType: VoteType) => void;
+  onLoadNextJoke: () => void;
   voteFeedback: string | null;
   voteFeedbackType: 'success' | 'error' | null;
   isVoting: boolean;
 }
 
-const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVote, voteFeedback, voteFeedbackType, isVoting }) => {
+const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVote, onLoadNextJoke, voteFeedback, voteFeedbackType, isVoting }) => {
+  const loadTimestampRef = useRef<number>(0);
+
+  // Set the timestamp when a new joke is loaded
+  useEffect(() => {
+    if (joke && !isLoading) {
+      loadTimestampRef.current = Date.now();
+    }
+  }, [joke, isLoading]);
+
+
+  const handleVoteClick = (voteType: VoteType) => {
+    if (isVoting) return;
+
+    // Check if 6 seconds have passed since the joke was loaded
+    if (Date.now() - loadTimestampRef.current < 6000) {
+      // If not, just load the next joke without voting
+      onLoadNextJoke();
+    } else {
+      // If 6 seconds have passed, proceed with the vote
+      onVote(voteType);
+    }
+  };
+
   let contentArea;
 
   if (isLoading) {
@@ -26,9 +50,12 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
     contentArea = <p>{joke.testua}</p>;
   }
 
+  // Buttons are only disabled while a vote is actively being processed.
+  const isDisabled = isVoting;
+
   return (
     <section id="txiste-erakuslea" className="bg-white p-6 rounded-lg shadow-lg text-center">
-      <h2 className="text-2xl font-bold mb-4 text-red-600">Eguneko txistea</h2>
+      <h2 className="text-2xl font-bold mb-4 text-red-600">Eguneko Txistea</h2>
       <div id="txiste-edukia" className="min-h-[100px] mb-2 text-lg text-gray-700 flex justify-center items-center">
         {contentArea}
       </div>
@@ -36,7 +63,7 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
       {!isLoading && !error && joke && joke.submitted_by_izena && (
         <div className="mb-4 text-sm text-gray-600">
           <p>
-            Nork bidalia: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
+            Bidalia: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
             {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}
           </p>
         </div>
@@ -46,27 +73,29 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
         <>
           <div id="botoiak" className="space-x-4">
             <Button
-              onClick={() => onVote('gora')}
-              className="text-3xl px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300"
+              onClick={() => handleVoteClick('gora')}
+              className="text-3xl px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
               aria-label="Bozkatu gora"
-              disabled={isVoting}
+              disabled={isDisabled}
             >
               👍
             </Button>
             <Button
-              onClick={() => onVote('behera')}
-              className="text-3xl px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-300"
+              onClick={() => handleVoteClick('behera')}
+              className="text-3xl px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
               aria-label="Bozkatu behera"
-              disabled={isVoting}
+              disabled={isDisabled}
             >
               👎
             </Button>
           </div>
-          {voteFeedback && (
-            <p className={`mt-4 text-sm ${voteFeedbackType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-              {voteFeedback}
-            </p>
-          )}
+          <div className="mt-4 text-sm min-h-[20px]">
+             {voteFeedback && (
+              <p className={`${voteFeedbackType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {voteFeedback}
+              </p>
+            )}
+          </div>
         </>
       )}
     </section>

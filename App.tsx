@@ -130,14 +130,7 @@ const App: React.FC = () => {
       } else {
         setVoteFeedback(response.message);
         setVoteFeedbackType('success');
-        if (currentJoke) {
-            const updatedJoke = {
-                ...currentJoke,
-                boto_positiboak: voteType === 'gora' ? currentJoke.boto_positiboak + 1 : currentJoke.boto_positiboak,
-                boto_negatiboak: voteType === 'behera' ? currentJoke.boto_negatiboak + 1 : currentJoke.boto_negatiboak,
-            };
-             await loadJoke();
-        }
+        await loadJoke();
         await loadInitialRankings(); // Reload all rankings as scores might have changed
       }
     } catch (err) {
