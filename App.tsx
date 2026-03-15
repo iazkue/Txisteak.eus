@@ -234,7 +234,7 @@ const App: React.FC = () => {
           {index + 1}
         </span>
         <div className="flex-grow min-w-0">
-          <p className="text-stone-800 font-serif mb-2 line-clamp-2 italic">"{joke.testua}"</p>
+          <p className="text-stone-800 mb-2 whitespace-pre-wrap">{joke.testua}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-wider text-stone-400">
             <span className="flex items-center gap-1">
               <span className="text-basque-red">★</span>
