@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import JokeDisplay from './components/JokeDisplay';
@@ -6,7 +7,8 @@ import RankingList from './components/RankingList';
 import SubmitJokeModal from './components/SubmitJokeModal';
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
-import { QueryDocumentSnapshot, DocumentData, Timestamp } from 'firebase/firestore';
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { Trophy, Calendar, Users, Info } from 'lucide-react';
 import Button from './components/Button';
 
 const App: React.FC = () => {
@@ -33,7 +35,7 @@ const App: React.FC = () => {
   const [lastSubmitterDoc, setLastSubmitterDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreSubmitters, setHasMoreSubmitters] = useState<boolean>(true);
   const SUBMITTER_RANKING_LIMIT = 5;
-  
+
   // Monthly Joke Ranking state
   const [monthlyJokeRanking, setMonthlyJokeRanking] = useState<Joke[]>([]);
   const [monthlyJokeRankingLoading, setMonthlyJokeRankingLoading] = useState<boolean>(true);
@@ -94,19 +96,19 @@ const App: React.FC = () => {
       setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
     }
     setSubmitterRankingLoading(false);
-    
+
     // Monthly Joke Ranking
     setMonthlyJokeRankingLoading(true);
     setMonthlyJokeRankingError(null);
     const monthlyRankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, null);
     if ('error' in monthlyRankData) {
-        setMonthlyJokeRankingError(monthlyRankData.error);
-        setMonthlyJokeRanking([]);
+      setMonthlyJokeRankingError(monthlyRankData.error);
+      setMonthlyJokeRanking([]);
     } else {
-        setMonthlyJokeRanking(monthlyRankData.jokes);
-        setLastMonthlyJokeDoc(monthlyRankData.newLastVisible);
-        const totalMonthly = await api.getTotalMonthlyJokeCount();
-        setHasMoreMonthlyJokes(monthlyRankData.jokes.length < totalMonthly);
+      setMonthlyJokeRanking(monthlyRankData.jokes);
+      setLastMonthlyJokeDoc(monthlyRankData.newLastVisible);
+      const totalMonthly = await api.getTotalMonthlyJokeCount();
+      setHasMoreMonthlyJokes(monthlyRankData.jokes.length < totalMonthly);
     }
     setMonthlyJokeRankingLoading(false);
 
@@ -130,7 +132,14 @@ const App: React.FC = () => {
       } else {
         setVoteFeedback(response.message);
         setVoteFeedbackType('success');
-        await loadJoke();
+        if (currentJoke) {
+          const updatedJoke = {
+            ...currentJoke,
+            boto_positiboak: voteType === 'gora' ? currentJoke.boto_positiboak + 1 : currentJoke.boto_positiboak,
+            boto_negatiboak: voteType === 'behera' ? currentJoke.boto_negatiboak + 1 : currentJoke.boto_negatiboak,
+          };
+          await loadJoke();
+        }
         await loadInitialRankings(); // Reload all rankings as scores might have changed
       }
     } catch (err) {
@@ -163,7 +172,7 @@ const App: React.FC = () => {
         setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
       }
       setSubmitterRankingLoading(false);
-      
+
       await loadJoke(); // Load a new random joke
       return { success: response.success, message: response.message };
     } catch (err) {
@@ -181,12 +190,12 @@ const App: React.FC = () => {
     } else {
       setJokeRanking(prev => [...prev, ...rankData.jokes]);
       setLastJokeDoc(rankData.newLastVisible);
-       const totalApproved = await api.getTotalApprovedJokeCount();
-       setHasMoreJokes((jokeRanking.length + rankData.jokes.length) < totalApproved);
+      const totalApproved = await api.getTotalApprovedJokeCount();
+      setHasMoreJokes((jokeRanking.length + rankData.jokes.length) < totalApproved);
     }
     setJokeRankingLoading(false);
   };
-  
+
   const handleLoadMoreSubmitters = async () => {
     if (!hasMoreSubmitters || submitterRankingLoading) return;
     setSubmitterRankingLoading(true);
@@ -207,107 +216,180 @@ const App: React.FC = () => {
     setMonthlyJokeRankingLoading(true);
     const rankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, lastMonthlyJokeDoc);
     if ('error' in rankData) {
-        setMonthlyJokeRankingError(rankData.error);
+      setMonthlyJokeRankingError(rankData.error);
     } else {
-        setMonthlyJokeRanking(prev => [...prev, ...rankData.jokes]);
-        setLastMonthlyJokeDoc(rankData.newLastVisible);
-        const totalMonthly = await api.getTotalMonthlyJokeCount();
-        setHasMoreMonthlyJokes((monthlyJokeRanking.length + rankData.jokes.length) < totalMonthly);
+      setMonthlyJokeRanking(prev => [...prev, ...rankData.jokes]);
+      setLastMonthlyJokeDoc(rankData.newLastVisible);
+      const totalMonthly = await api.getTotalMonthlyJokeCount();
+      setHasMoreMonthlyJokes((monthlyJokeRanking.length + rankData.jokes.length) < totalMonthly);
     }
     setMonthlyJokeRankingLoading(false);
   };
 
   // --- Render Item Functions ---
   const renderJokeRankingItem = (joke: Joke, index: number) => (
-    <li key={joke.id} className="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded">
-      <p className="text-sm whitespace-pre-line text-gray-700"> {joke.testua}</p>
-      <br />
-      <p className="text-xs text-gray-500">
-        Puntuazioa: {(joke.puntuazioa ?? 0).toFixed(3)} (👍{joke.boto_positiboak} / 👎{joke.boto_negatiboak})
-      </p>
-      <p className="text-xs text-gray-500">
-        Data: {joke.sortze_data ? new Date(joke.sortze_data as string).toLocaleDateString('eu-ES') : 'N/A'}
-      </p>
-      {joke.submitted_by_izena && (
-        <p className="text-xs text-gray-500">
-          Egilea: {joke.submitted_by_izena} {joke.submitted_by_abizenak}
-          {joke.submitted_by_pueblo ? ` (${joke.submitted_by_pueblo})` : ''}
-        </p>
-      )}
-    </li>
+    <div key={joke.id} className="group">
+      <div className="flex items-start gap-4">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-100 text-stone-500 rounded-lg text-sm font-bold group-hover:bg-basque-red group-hover:text-white transition-colors">
+          {index + 1}
+        </span>
+        <div className="flex-grow min-w-0">
+          <p className="text-stone-800 font-serif mb-2 line-clamp-2 italic">"{joke.testua}"</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-wider text-stone-400">
+            <span className="flex items-center gap-1">
+              <span className="text-basque-red">★</span>
+              {(joke.puntuazioa ?? 0).toFixed(2)}
+            </span>
+            <span>👍 {joke.boto_positiboak}</span>
+            <span>👎 {joke.boto_negatiboak}</span>
+            {joke.submitted_by_izena && (
+              <span className="text-stone-300">Bidalia: {joke.submitted_by_izena}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   const renderSubmitterRankingItem = (submitter: Submitter, index: number) => (
-     <li key={submitter.id} className="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded">
-      <p className="text-sm text-gray-700">{index + 1}. {submitter.izena} {submitter.abizenak}</p>
-      <p className="text-xs text-gray-500">
-        Txisteak: {submitter.txiste_kopurua} | Batezbesteko Puntuazioa: {submitter.puntuazio_batazbestekoa.toFixed(3)}
-      </p>
-    </li>
+    <div key={submitter.id} className="group">
+      <div className="flex items-center gap-4">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-100 text-stone-500 rounded-lg text-sm font-bold group-hover:bg-blue-500 group-hover:text-white transition-colors">
+          {index + 1}
+        </span>
+        <div className="flex-grow">
+          <p className="text-stone-800 font-bold">{submitter.izena} {submitter.abizenak}</p>
+          <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider text-stone-400">
+            <span>{submitter.txiste_kopurua} Txiste</span>
+            <span className="w-1 h-1 bg-stone-200 rounded-full" />
+            <span>Batezbestekoa: {submitter.puntuazio_batazbestekoa.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="min-h-screen flex flex-col">
       <Header onOpenSubmitModal={() => setIsModalOpen(true)} />
-      <main className="flex-grow container mx-auto p-4 sm:p-6 space-y-6">
-        <JokeDisplay
-          joke={currentJoke}
-          isLoading={jokeLoading}
-          error={jokeError}
-          onVote={handleVote}
-          onLoadNextJoke={loadJoke}
-          voteFeedback={voteFeedback}
-          voteFeedbackType={voteFeedbackType}
-          isVoting={isVoting}
-        />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <RankingList<Joke>
-              title="Txiste onenen sailkapena"
-              items={jokeRanking}
-              renderItem={renderJokeRankingItem}
-              isLoading={jokeRankingLoading}
-              onLoadMore={handleLoadMoreJokes}
-              hasMore={hasMoreJokes}
-              error={jokeRankingError}
-            />
-            <RankingList<Joke>
-              title="Hilabete honetako txiste onenak"
-              items={monthlyJokeRanking}
-              renderItem={renderJokeRankingItem}
-              isLoading={monthlyJokeRankingLoading}
-              onLoadMore={handleLoadMoreMonthlyJokes}
-              hasMore={hasMoreMonthlyJokes}
-              error={monthlyJokeRankingError}
-            />
-            <RankingList<Submitter>
-              title="Txistegile onenen sailkapena"
-              items={submitterRanking}
-              renderItem={renderSubmitterRankingItem}
-              isLoading={submitterRankingLoading}
-              onLoadMore={handleLoadMoreSubmitters}
-              hasMore={hasMoreSubmitters}
-              error={submitterRankingError}
-            />
-          </div>
 
-          <section id="honi-buruz-atala" className="bg-white p-6 rounded-lg shadow-lg lg:col-span-1">
-            <h2 className="text-2xl font-bold mb-4 text-red-600">Webguneari buruz</h2>
-            <div className="space-y-3 text-gray-700">
-              <p>Ongi etorri Txisteak.eus webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
-              <p>Webgunearen sorrera, Xanti eta Iñaki lagunak(txistegile amorratuak) haien umore beharra asetzeko nahiarekin sortu zen. Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
-              <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko! Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.</p>
-            </div>
-          </section>
+      <main className="container mx-auto px-4 py-12 flex-grow max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-16"
+        >
+          <JokeDisplay
+            joke={currentJoke}
+            isLoading={jokeLoading}
+            error={jokeError}
+            onVote={handleVote}
+            voteFeedback={voteFeedback}
+            voteFeedbackType={voteFeedbackType}
+            isVoting={isVoting}
+          />
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 space-y-8"
+          >
+            <section className="glass-card p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-basque-red/10 p-2 rounded-lg">
+                  <Trophy className="text-basque-red" size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Txiste onenak</h3>
+              </div>
+              <RankingList<Joke>
+                title="Txiste Onenen Sailkapena"
+                items={jokeRanking}
+                renderItem={renderJokeRankingItem}
+                isLoading={jokeRankingLoading}
+                onLoadMore={handleLoadMoreJokes}
+                hasMore={hasMoreJokes}
+                error={jokeRankingError}
+              />
+            </section>
+
+            <section className="glass-card p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-basque-green/10 p-2 rounded-lg">
+                  <Calendar className="text-basque-green" size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Hilabete honetako onenak</h3>
+              </div>
+              <RankingList<Joke>
+                title="Hilabete honetako txiste onenak"
+                items={monthlyJokeRanking}
+                renderItem={renderJokeRankingItem}
+                isLoading={monthlyJokeRankingLoading}
+                onLoadMore={handleLoadMoreMonthlyJokes}
+                hasMore={hasMoreMonthlyJokes}
+                error={monthlyJokeRankingError}
+              />
+            </section>
+
+            <section className="glass-card p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-blue-500/10 p-2 rounded-lg">
+                  <Users className="text-blue-500" size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Txistegile onenak</h3>
+              </div>
+              <RankingList<Submitter>
+                title="Txistegile Onenen Sailkapena"
+                items={submitterRanking}
+                renderItem={renderSubmitterRankingItem}
+                isLoading={submitterRankingLoading}
+                onLoadMore={handleLoadMoreSubmitters}
+                hasMore={hasMoreSubmitters}
+                error={submitterRankingError}
+              />
+            </section>
+          </motion.div>
+
+          <motion.aside
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-8"
+          >
+            <section id="honi-buruz-atala" className="glass-card p-8 sticky top-24">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-stone-100 p-2 rounded-lg">
+                  <Info className="text-stone-600" size={24} />
+                </div>
+                <h2 className="text-xl font-bold text-stone-900">Webguneari Buruz</h2>
+              </div>
+              <div className="space-y-4 text-stone-600 leading-relaxed">
+                <p>Ongi etorri <span className="font-bold text-basque-red">Txisteak.eus</span> webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
+                <p>Webgunea Xanti eta Iñaki lagunen(txistegile amorratuak) umore beharra asetzeko nahiarekin sortu zen. Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
+                <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko!</p>
+                <div className="pt-4 border-t border-stone-100 text-xs italic">
+                  Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.
+                </div>
+              </div>
+            </section>
+          </motion.aside>
         </div>
       </main>
+
       <Footer />
-      <SubmitJokeModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmitJoke}
-      />
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <SubmitJokeModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={handleSubmitJoke}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

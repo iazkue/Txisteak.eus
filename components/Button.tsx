@@ -1,8 +1,15 @@
 
 import React from 'react';
+import { motion } from 'motion/react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
@@ -14,41 +21,31 @@ const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = "font-bold rounded focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-150";
+  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
   
-  let variantStyles = "";
-  switch (variant) {
-    case 'primary':
-      variantStyles = "bg-red-500 hover:bg-red-600 text-white focus:ring-red-400";
-      break;
-    case 'secondary':
-      variantStyles = "bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-400";
-      break;
-    case 'ghost':
-      variantStyles = "bg-transparent hover:bg-gray-200 text-gray-700 focus:ring-gray-400 border border-gray-300";
-      break;
-  }
+  const variants = {
+    primary: "bg-basque-red text-white hover:bg-red-700 focus:ring-red-500 shadow-sm",
+    secondary: "bg-basque-green text-white hover:bg-green-700 focus:ring-green-500 shadow-sm",
+    success: "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm",
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm",
+    ghost: "bg-transparent hover:bg-stone-100 text-stone-600 border border-stone-200",
+  };
 
-  let sizeStyles = "";
-  switch (size) {
-    case 'sm':
-      sizeStyles = "py-1 px-2 text-sm";
-      break;
-    case 'md':
-      sizeStyles = "py-2 px-4 text-base";
-      break;
-    case 'lg':
-      sizeStyles = "py-3 px-6 text-lg";
-      break;
-  }
+  const sizes = {
+    sm: "py-1.5 px-3 text-sm",
+    md: "py-2.5 px-5 text-base",
+    lg: "py-3.5 px-8 text-lg",
+  };
 
   return (
-    <button
-      className={`${baseStyles} ${variantStyles} ${sizeStyles} ${className}`}
-      {...props}
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={cn(baseStyles, variants[variant], sizes[size], className)}
+      {...props as any}
     >
       {children}
-    </button>
+    </motion.button>
   );
 };
 

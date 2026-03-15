@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Libre Baskerville", serif;
+
+  --color-basque-red: #d52b1e;
+  --color-basque-green: #009b3a;
+  --color-basque-cream: #fdfcf8;
+}
+
+@layer base {
+  body {
+    @apply bg-basque-cream text-stone-900 antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-sans font-bold tracking-tight;
+  }
+}
+
+.txiste-text {
+  @apply font-serif text-xl md:text-2xl leading-relaxed italic text-stone-800;
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-sm border border-stone-200 shadow-sm rounded-2xl;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}

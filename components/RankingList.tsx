@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Joke, Submitter } from '../types';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
@@ -24,27 +25,55 @@ const RankingList = <T extends Joke | Submitter,>({
   error,
 }: RankingListProps<T>) => {
   return (
-    <section className="bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-red-600">{title}</h2>
-      {isLoading && items.length === 0 && <LoadingSpinner />}
-      {error && <p className="text-red-500">{error}</p>}
+    <div className="space-y-4">
+      {isLoading && items.length === 0 && (
+        <div className="py-12 flex justify-center">
+          <LoadingSpinner />
+        </div>
+      )}
+      
+      {error && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
+          {error}
+        </div>
+      )}
+      
       {!isLoading && !error && items.length === 0 && (
-        <p className="text-gray-500">Ez dago daturik sailkapen honetarako.</p>
+        <p className="text-stone-400 italic text-center py-8">Ez dago daturik sailkapen honetarako.</p>
       )}
+      
       {items.length > 0 && (
-        <ol className="space-y-3 list-decimal list-inside">
-          {items.map((item, index) => renderItem(item, index))}
-        </ol>
+        <ul className="divide-y divide-stone-100">
+          <AnimatePresence initial={false}>
+            {items.map((item, index) => (
+              <motion.li
+                key={(item as any).id || index}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="py-4 first:pt-0 last:pb-0"
+              >
+                {renderItem(item, index)}
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
       )}
-      {onLoadMore && hasMore && !isLoading && (
-        <div className="mt-6 text-center">
-          <Button onClick={onLoadMore} variant="secondary">
-            Gehiago Ikusi
+      
+      {onLoadMore && hasMore && (
+        <div className="mt-8 text-center">
+          <Button 
+            onClick={onLoadMore} 
+            variant="ghost" 
+            size="sm"
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            {isLoading ? 'Kargatzen...' : 'Gehiago Ikusi'}
           </Button>
         </div>
       )}
-      {isLoading && items.length > 0 && <LoadingSpinner />}
-    </section>
+    </div>
   );
 };
 

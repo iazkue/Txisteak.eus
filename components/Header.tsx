@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Button from './Button';
+import { PlusCircle, Laugh } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSubmitModal: () => void;
@@ -8,11 +9,18 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onOpenSubmitModal }) => {
   return (
-    <header className="bg-red-600 text-white p-4 shadow-md">
-      <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-        <h1 className="text-3xl font-bold mb-2 sm:mb-0">TXISTEAK.EUS</h1>
-        <Button onClick={onOpenSubmitModal} variant="secondary" size="md">
-          Zure Txistea Bidali
+    <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-20 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="bg-basque-red p-2 rounded-xl">
+            <Laugh className="text-white" size={24} />
+          </div>
+          <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Txisteak.eus</h1>
+        </div>
+        <Button onClick={onOpenSubmitModal} variant="primary" size="md" className="gap-2">
+          <PlusCircle size={18} />
+          <span className="hidden sm:inline">Zure Txistea Bidali</span>
+          <span className="sm:hidden">Bidali</span>
         </Button>
       </div>
     </header>
