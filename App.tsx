@@ -192,11 +192,11 @@ const App: React.FC = () => {
               {(joke.puntuazioa ?? 0).toFixed(2)}
             </span>
             <span className="flex items-center gap-1">
-              <ThumbsUp size={10} className="text-stone-400" />
+              <ThumbsUp size={12} className="text-basque-red" />
               {joke.boto_positiboak}
             </span>
             <span className="flex items-center gap-1">
-              <ThumbsDown size={10} className="text-stone-400" />
+              <ThumbsDown size={12} className="text-red-600" />
               {joke.boto_negatiboak}
             </span>
             {joke.submitted_by_izena && (
