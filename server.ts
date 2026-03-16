@@ -86,7 +86,13 @@ async function startServer() {
   app.get("/api/jokes/random", async (req, res) => {
     console.log("GET /api/jokes/random");
     try {
-      const { rows } = await pool.query("SELECT * FROM jokes ORDER BY RANDOM() LIMIT 1");
+      // Weighted random: better scores have higher probability
+      const { rows } = await pool.query(`
+        SELECT * FROM jokes 
+        WHERE boto_positiboak > 0 
+        ORDER BY RANDOM() * puntuazioa DESC 
+        LIMIT 1
+      `);
       res.json(rows[0] || null);
     } catch (err: any) {
       console.error("Error fetching random joke:", err);
@@ -100,6 +106,7 @@ async function startServer() {
       const { rows } = await pool.query(`
         SELECT *, (boto_positiboak - boto_negatiboak) as net_votes 
         FROM jokes 
+        WHERE boto_positiboak > 0
         ORDER BY puntuazioa DESC, boto_positiboak DESC 
         LIMIT 20
       `);
@@ -116,7 +123,7 @@ async function startServer() {
       const { rows } = await pool.query(`
         SELECT *, (boto_positiboak - boto_negatiboak) as net_votes 
         FROM jokes 
-        WHERE created_at > NOW() - INTERVAL '1 month'
+        WHERE created_at > NOW() - INTERVAL '1 month' AND boto_positiboak > 0
         ORDER BY puntuazioa DESC, boto_positiboak DESC 
         LIMIT 20
       `);
@@ -157,10 +164,10 @@ async function startServer() {
     }
     try {
       const { rows } = await pool.query(
-        "INSERT INTO jokes (testua, email, izena, abizenak, pueblo) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak) VALUES ($1, $2, $3, $4, $5, 1) RETURNING *",
         [testua, email, izena, abizenak, pueblo]
       );
-      res.json({ success: true, message: "Txistea ondo bidali da!", joke: rows[0] });
+      res.json({ success: true, message: "Txistea ondo bidali da! Moderazioaren zain dago.", joke: rows[0] });
     } catch (err: any) {
       console.error("Error submitting joke:", err);
       res.status(500).json({ success: false, message: "Errorea txistea bidaltzean.", details: err.message });
