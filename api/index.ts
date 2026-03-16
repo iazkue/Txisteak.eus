@@ -16,8 +16,8 @@ const connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.spl
 
 const pool = new Pool({
   connectionString,
-  ssl: connectionString?.includes('sslmode=require') || connectionString?.includes('neon.tech') 
-    ? { rejectUnauthorized: false } 
+  ssl: connectionString?.includes('sslmode=require') || connectionString?.includes('neon.tech')
+    ? { rejectUnauthorized: false }
     : false,
 });
 
@@ -183,7 +183,7 @@ app.post("/api/jokes", async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak) VALUES ($1, $2, $3, $4, $5, 1) RETURNING *",
+      "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak, puntuazioa) VALUES ($1, $2, $3, $4, $5, 1, 0.333) RETURNING *",
       [testua, email, izena, abizenak, pueblo]
     );
     res.json({ success: true, message: "Txistea ondo bidali da! Moderazioaren zain dago.", joke: rows[0] });
@@ -205,10 +205,12 @@ app.post("/api/jokes/:id/vote", async (req, res) => {
   try {
     await client.query("BEGIN");
     const voteCol = type === 'gora' ? 'boto_positiboak' : 'boto_negatiboak';
-    await client.query(`UPDATE jokes SET ${voteCol} = ${voteCol} + 1 WHERE id = $1`, [id]);
     await client.query(`
       UPDATE jokes 
-      SET puntuazioa = (CAST(boto_positiboak AS FLOAT) + 1.0) / (CAST(boto_positiboak + boto_negatiboak AS FLOAT) + 2.0) * 100
+      SET 
+        ${voteCol} = ${voteCol} + 1,
+        puntuazioa = (CAST(CASE WHEN '${type}' = 'gora' THEN boto_positiboak + 1 ELSE boto_positiboak END AS FLOAT) + 1.0) / 
+                     (CAST(boto_positiboak + boto_negatiboak + 1 AS FLOAT) + 2.0)
       WHERE id = $1
     `, [id]);
     await client.query("INSERT INTO votes (joke_id, vote_type, ip_address) VALUES ($1, $2, $3)", [id, type, req.ip]);
