@@ -23,44 +23,6 @@ const pool = new Pool({
     : false,
 });
 
-async function initDb() {
-  console.log("Initializing database...");
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is missing!");
-    return;
-  }
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS jokes (
-        id SERIAL PRIMARY KEY,
-        testua TEXT NOT NULL,
-        email TEXT NOT NULL,
-        izena TEXT NOT NULL,
-        abizenak TEXT NOT NULL,
-        pueblo TEXT NOT NULL,
-        boto_positiboak INTEGER DEFAULT 0,
-        boto_negatiboak INTEGER DEFAULT 0,
-        puntuazioa FLOAT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS votes (
-        id SERIAL PRIMARY KEY,
-        joke_id INTEGER REFERENCES jokes(id) ON DELETE CASCADE,
-        vote_type VARCHAR(10) CHECK (vote_type IN ('gora', 'behera')),
-        ip_address TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log("Database initialized successfully.");
-  } catch (err) {
-    console.error("Error initializing database:", err);
-  } finally {
-    client.release();
-  }
-}
-
 const app = express();
 
 async function initDb() {
@@ -108,14 +70,29 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 
-// Initialize DB once
-let dbInitialized = false;
-app.use(async (req, res, next) => {
-  if (!dbInitialized && req.path.startsWith('/api')) {
-    await initDb();
-    dbInitialized = true;
+// Initialize DB helper
+let dbPromise: Promise<void> | null = null;
+
+async function ensureDb() {
+  if (!dbPromise) {
+    dbPromise = initDb();
   }
-  next();
+  return dbPromise;
+}
+
+// Middleware to ensure DB is ready for API calls
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await ensureDb();
+      next();
+    } catch (err: any) {
+      console.error("DB Init failed in middleware:", err);
+      res.status(500).json({ error: "Database initialization failed", details: err.message });
+    }
+  } else {
+    next();
+  }
 });
 
 // API Routes
