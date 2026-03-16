@@ -268,10 +268,10 @@ const App: React.FC = () => {
                 <div className="bg-basque-green/10 p-2 rounded-lg">
                   <Calendar className="text-basque-green" size={24} />
                 </div>
-                <h3 className="text-xl font-bold">Hilabete honetako onenak</h3>
+                <h3 className="text-xl font-bold">Azken hilabeteko onenak</h3>
               </div>
               <RankingList<Joke>
-                title="Hilabete honetako txiste onenak"
+                title="Azken hilabeteko txiste onenak"
                 items={monthlyJokeRanking}
                 renderItem={renderJokeRankingItem}
                 isLoading={monthlyJokeRankingLoading}

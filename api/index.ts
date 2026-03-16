@@ -142,7 +142,7 @@ app.get("/api/jokes/monthly", async (req, res) => {
     const { rows } = await pool.query(`
       SELECT *, (boto_positiboak - boto_negatiboak) as net_votes 
       FROM jokes 
-      WHERE created_at > NOW() - INTERVAL '1 month' AND boto_positiboak > 0
+      WHERE created_at > NOW() - INTERVAL '31 days' AND boto_positiboak > 0
       ORDER BY puntuazioa DESC, boto_positiboak DESC 
       LIMIT 20
     `);
