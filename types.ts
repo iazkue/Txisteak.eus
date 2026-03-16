@@ -1,21 +1,19 @@
-import { Timestamp } from 'firebase/firestore';
-
 export interface Joke {
-  id: string; // Firestore document ID
+  id: number;
   testua: string;
   boto_positiboak: number;
   boto_negatiboak: number;
   puntuazioa: number; 
-  sortze_data: Timestamp | string; // Firestore Timestamp, or string for API transfer
+  sortze_data: string;
   submitted_by_izena?: string;
   submitted_by_abizenak?: string;
   submitted_by_email?: string;
-  submitted_by_pueblo?: string; // Added field for submitter's town
-  pending_review: boolean; // True if awaiting admin approval
+  submitted_by_pueblo?: string;
+  pending_review?: boolean;
 }
 
 export interface Submitter {
-  id: string; // Email will be used as ID
+  id: string;
   izena: string;
   abizenak: string;
   email: string;

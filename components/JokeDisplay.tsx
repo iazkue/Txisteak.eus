@@ -13,15 +13,16 @@ interface JokeDisplayProps {
   voteFeedback: string | null;
   voteFeedbackType: 'success' | 'error' | null;
   isVoting: boolean;
+  cooldown: number;
 }
 
-const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVote, voteFeedback, voteFeedbackType, isVoting }) => {
+const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVote, voteFeedback, voteFeedbackType, isVoting, cooldown }) => {
   return (
     <section id="txiste-erakuslea" className="glass-card p-8 md:p-12 text-center relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-basque-red" />
-
+      
       <h2 className="text-sm font-bold uppercase tracking-widest text-stone-400 mb-8">Eguneko Txistea</h2>
-
+      
       <div id="txiste-edukia" className="min-h-[200px] flex flex-col justify-center items-center mb-8">
         <AnimatePresence mode="wait">
           {isLoading ? (
@@ -61,7 +62,7 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
               className="w-full"
             >
               <p className="txiste-text mb-8">{joke.testua}</p>
-
+              
               {joke.submitted_by_izena && (
                 <div className="flex items-center justify-center gap-4 text-sm text-stone-500 mb-8">
                   <div className="flex items-center gap-1">
@@ -80,14 +81,14 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
           )}
         </AnimatePresence>
       </div>
-
+      
       {!isLoading && !error && joke && (
         <div className="flex flex-col items-center gap-4">
           <div id="botoiak" className="flex gap-4">
             <Button
               variant="primary"
               onClick={() => onVote('gora')}
-              disabled={isVoting}
+              disabled={isVoting || cooldown > 0}
               className="rounded-full w-16 h-16 p-0"
               aria-label="Bozkatu gora"
             >
@@ -96,22 +97,22 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
             <Button
               variant="danger"
               onClick={() => onVote('behera')}
-              disabled={isVoting}
+              disabled={isVoting || cooldown > 0}
               className="rounded-full w-16 h-16 p-0"
             >
               <ThumbsDown size={24} />
             </Button>
           </div>
-
+          
           <AnimatePresence>
-            {voteFeedback && (
+            {(voteFeedback || cooldown > 0) && (
               <motion.p
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className={`text-sm font-medium ${voteFeedbackType === 'success' ? 'text-stone-600' : 'text-red-600'}`}
               >
-                {voteFeedback}
+                {cooldown > 0 ? `Itxaron ${cooldown} segundo...` : voteFeedback}
               </motion.p>
             )}
           </AnimatePresence>

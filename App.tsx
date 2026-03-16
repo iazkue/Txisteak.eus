@@ -7,7 +7,6 @@ import RankingList from './components/RankingList';
 import SubmitJokeModal from './components/SubmitJokeModal';
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
-import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { Trophy, Calendar, Users, Info } from 'lucide-react';
 import Button from './components/Button';
 
@@ -19,32 +18,34 @@ const App: React.FC = () => {
   const [voteFeedback, setVoteFeedback] = useState<string | null>(null);
   const [voteFeedbackType, setVoteFeedbackType] = useState<'success' | 'error' | null>(null);
   const [isVoting, setIsVoting] = useState<boolean>(false);
+  const [voteCooldown, setVoteCooldown] = useState<number>(0);
 
   // Joke Ranking state
   const [jokeRanking, setJokeRanking] = useState<Joke[]>([]);
   const [jokeRankingLoading, setJokeRankingLoading] = useState<boolean>(true);
   const [jokeRankingError, setJokeRankingError] = useState<string | null>(null);
-  const [lastJokeDoc, setLastJokeDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMoreJokes, setHasMoreJokes] = useState<boolean>(true);
-  const JOKE_RANKING_LIMIT = 5;
+  const [hasMoreJokes, setHasMoreJokes] = useState<boolean>(false);
 
   // Submitter Ranking state
   const [submitterRanking, setSubmitterRanking] = useState<Submitter[]>([]);
   const [submitterRankingLoading, setSubmitterRankingLoading] = useState<boolean>(true);
   const [submitterRankingError, setSubmitterRankingError] = useState<string | null>(null);
-  const [lastSubmitterDoc, setLastSubmitterDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMoreSubmitters, setHasMoreSubmitters] = useState<boolean>(true);
-  const SUBMITTER_RANKING_LIMIT = 5;
+  const [hasMoreSubmitters, setHasMoreSubmitters] = useState<boolean>(false);
 
   // Monthly Joke Ranking state
   const [monthlyJokeRanking, setMonthlyJokeRanking] = useState<Joke[]>([]);
   const [monthlyJokeRankingLoading, setMonthlyJokeRankingLoading] = useState<boolean>(true);
   const [monthlyJokeRankingError, setMonthlyJokeRankingError] = useState<string | null>(null);
-  const [lastMonthlyJokeDoc, setLastMonthlyJokeDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMoreMonthlyJokes, setHasMoreMonthlyJokes] = useState<boolean>(true);
-  const MONTHLY_JOKE_RANKING_LIMIT = 5;
+  const [hasMoreMonthlyJokes, setHasMoreMonthlyJokes] = useState<boolean>(false);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (voteCooldown > 0) {
+      const timer = setTimeout(() => setVoteCooldown(voteCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [voteCooldown]);
 
   const loadJoke = useCallback(async () => {
     setJokeLoading(true);
@@ -70,45 +71,39 @@ const App: React.FC = () => {
     // Joke Ranking
     setJokeRankingLoading(true);
     setJokeRankingError(null);
-    const jokeRankData = await api.fetchJokeRanking(JOKE_RANKING_LIMIT, null);
+    const jokeRankData = await api.fetchJokeRanking();
     if ('error' in jokeRankData) {
       setJokeRankingError(jokeRankData.error);
       setJokeRanking([]);
     } else {
       setJokeRanking(jokeRankData.jokes);
-      setLastJokeDoc(jokeRankData.newLastVisible);
-      const totalApproved = await api.getTotalApprovedJokeCount();
-      setHasMoreJokes(jokeRankData.jokes.length < totalApproved);
+      setHasMoreJokes(false);
     }
     setJokeRankingLoading(false);
 
     // Submitter Ranking
     setSubmitterRankingLoading(true);
     setSubmitterRankingError(null);
-    const submitterRankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, null);
+    const submitterRankData = await api.fetchSubmitterRanking();
     if ('error' in submitterRankData) {
       setSubmitterRankingError(submitterRankData.error);
       setSubmitterRanking([]);
     } else {
       setSubmitterRanking(submitterRankData.submitters);
-      setLastSubmitterDoc(submitterRankData.newLastVisible);
-      const totalSubmitters = await api.getTotalSubmitterCount();
-      setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
+      setHasMoreSubmitters(false);
     }
     setSubmitterRankingLoading(false);
 
     // Monthly Joke Ranking
     setMonthlyJokeRankingLoading(true);
     setMonthlyJokeRankingError(null);
-    const monthlyRankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, null);
+    const monthlyRankData = await api.fetchMonthlyBestJokes();
     if ('error' in monthlyRankData) {
       setMonthlyJokeRankingError(monthlyRankData.error);
       setMonthlyJokeRanking([]);
     } else {
       setMonthlyJokeRanking(monthlyRankData.jokes);
-      setLastMonthlyJokeDoc(monthlyRankData.newLastVisible);
-      const totalMonthly = await api.getTotalMonthlyJokeCount();
-      setHasMoreMonthlyJokes(monthlyRankData.jokes.length < totalMonthly);
+      setHasMoreMonthlyJokes(false);
     }
     setMonthlyJokeRankingLoading(false);
 
@@ -121,7 +116,7 @@ const App: React.FC = () => {
   }, [loadJoke, loadInitialRankings]);
 
   const handleVote = async (voteType: VoteType) => {
-    if (!currentJoke || isVoting) return;
+    if (!currentJoke || isVoting || voteCooldown > 0) return;
     setIsVoting(true);
     setVoteFeedback(null);
     try {
@@ -132,25 +127,20 @@ const App: React.FC = () => {
       } else {
         setVoteFeedback(response.message);
         setVoteFeedbackType('success');
-        if (currentJoke) {
-          const updatedJoke = {
-            ...currentJoke,
-            boto_positiboak: voteType === 'gora' ? currentJoke.boto_positiboak + 1 : currentJoke.boto_positiboak,
-            boto_negatiboak: voteType === 'behera' ? currentJoke.boto_negatiboak + 1 : currentJoke.boto_negatiboak,
-          };
-          await loadJoke();
-        }
-        await loadInitialRankings(); // Reload all rankings as scores might have changed
+        setVoteCooldown(5);
+        await loadJoke();
+        await loadInitialRankings();
+
+        setTimeout(() => {
+          setVoteFeedback(null);
+          setVoteFeedbackType(null);
+        }, 3000);
       }
     } catch (err) {
       setVoteFeedback('Errorea bozkatzean.');
       setVoteFeedbackType('error');
     } finally {
       setIsVoting(false);
-      setTimeout(() => {
-        setVoteFeedback(null);
-        setVoteFeedbackType(null);
-      }, 3000);
     }
   };
 
@@ -160,20 +150,9 @@ const App: React.FC = () => {
       if ('error' in response) {
         return { success: false, message: response.error };
       }
-      // Reload submitter ranking as a new submitter might have been added or stats updated.
-      setSubmitterRankingLoading(true);
-      const submitterRankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, null);
-      if ('error' in submitterRankData) {
-        setSubmitterRankingError(submitterRankData.error);
-      } else {
-        setSubmitterRanking(submitterRankData.submitters);
-        setLastSubmitterDoc(submitterRankData.newLastVisible);
-        const totalSubmitters = await api.getTotalSubmitterCount();
-        setHasMoreSubmitters(submitterRankData.submitters.length < totalSubmitters);
-      }
-      setSubmitterRankingLoading(false);
 
-      await loadJoke(); // Load a new random joke
+      await loadInitialRankings();
+      await loadJoke();
       return { success: response.success, message: response.message };
     } catch (err) {
       return { success: false, message: 'Errore bat gertatu da txistea bidaltzean.' };
@@ -182,48 +161,15 @@ const App: React.FC = () => {
 
   // --- Load More Handlers for Rankings ---
   const handleLoadMoreJokes = async () => {
-    if (!hasMoreJokes || jokeRankingLoading) return;
-    setJokeRankingLoading(true);
-    const rankData = await api.fetchJokeRanking(JOKE_RANKING_LIMIT, lastJokeDoc);
-    if ('error' in rankData) {
-      setJokeRankingError(rankData.error);
-    } else {
-      setJokeRanking(prev => [...prev, ...rankData.jokes]);
-      setLastJokeDoc(rankData.newLastVisible);
-      const totalApproved = await api.getTotalApprovedJokeCount();
-      setHasMoreJokes((jokeRanking.length + rankData.jokes.length) < totalApproved);
-    }
-    setJokeRankingLoading(false);
+    // Simplified for now
   };
 
   const handleLoadMoreSubmitters = async () => {
-    if (!hasMoreSubmitters || submitterRankingLoading) return;
-    setSubmitterRankingLoading(true);
-    const rankData = await api.fetchSubmitterRanking(SUBMITTER_RANKING_LIMIT, lastSubmitterDoc);
-    if ('error' in rankData) {
-      setSubmitterRankingError(rankData.error);
-    } else {
-      setSubmitterRanking(prev => [...prev, ...rankData.submitters]);
-      setLastSubmitterDoc(rankData.newLastVisible);
-      const totalSubmitters = await api.getTotalSubmitterCount();
-      setHasMoreSubmitters((submitterRanking.length + rankData.submitters.length) < totalSubmitters);
-    }
-    setSubmitterRankingLoading(false);
+    // Simplified for now
   };
 
   const handleLoadMoreMonthlyJokes = async () => {
-    if (!hasMoreMonthlyJokes || monthlyJokeRankingLoading) return;
-    setMonthlyJokeRankingLoading(true);
-    const rankData = await api.fetchMonthlyBestJokes(MONTHLY_JOKE_RANKING_LIMIT, lastMonthlyJokeDoc);
-    if ('error' in rankData) {
-      setMonthlyJokeRankingError(rankData.error);
-    } else {
-      setMonthlyJokeRanking(prev => [...prev, ...rankData.jokes]);
-      setLastMonthlyJokeDoc(rankData.newLastVisible);
-      const totalMonthly = await api.getTotalMonthlyJokeCount();
-      setHasMoreMonthlyJokes((monthlyJokeRanking.length + rankData.jokes.length) < totalMonthly);
-    }
-    setMonthlyJokeRankingLoading(false);
+    // Simplified for now
   };
 
   // --- Render Item Functions ---
@@ -288,6 +234,7 @@ const App: React.FC = () => {
             voteFeedback={voteFeedback}
             voteFeedbackType={voteFeedbackType}
             isVoting={isVoting}
+            cooldown={voteCooldown}
           />
         </motion.div>
 

@@ -19,6 +19,14 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitCooldown, setSubmitCooldown] = useState<number>(0);
+
+  useEffect(() => {
+    if (submitCooldown > 0) {
+      const timer = setTimeout(() => setSubmitCooldown(submitCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitCooldown]);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,6 +43,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitCooldown > 0) return;
     if (!testua.trim() || !email.trim() || !izena.trim() || !abizenak.trim() || !pueblo.trim()) {
       setFeedback('Beharrezko eremu guztiak bete behar dituzu.');
       setFeedbackType('error');
@@ -50,6 +59,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
         setFeedback(result.message);
         setFeedbackType(result.success ? 'success' : 'error');
         if (result.success) {
+            setSubmitCooldown(5);
             setTimeout(() => {
                 onClose();
             }, 2000);
@@ -153,24 +163,24 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
           </div>
 
           <AnimatePresence>
-            {feedback && (
+            {(feedback || submitCooldown > 0) && (
               <motion.p
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className={`text-sm font-medium ${feedbackType === 'success' ? 'text-emerald-600' : feedbackType === 'error' ? 'text-red-600' : 'text-stone-500'}`}
               >
-                {feedback}
+                {submitCooldown > 0 ? `Itxaron ${submitCooldown} segundo...` : feedback}
               </motion.p>
             )}
           </AnimatePresence>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting || submitCooldown > 0}>
               Utzi
             </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting} className="min-w-[100px]">
-              {isSubmitting ? 'Bidaltzen...' : 'Bidali'}
+            <Button type="submit" variant="primary" disabled={isSubmitting || submitCooldown > 0} className="min-w-[100px]">
+              {submitCooldown > 0 ? `Itxaron (${submitCooldown})` : (isSubmitting ? 'Bidaltzen...' : 'Bidali')}
             </Button>
           </div>
         </form>
