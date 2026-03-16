@@ -56,17 +56,17 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
     const result = await onSubmit({ testua, email, izena, abizenak, pueblo });
     setIsSubmitting(false);
     if (result) {
-        setFeedback(result.message);
-        setFeedbackType(result.success ? 'success' : 'error');
-        if (result.success) {
-            setSubmitCooldown(5);
-            setTimeout(() => {
-                onClose();
-            }, 2000);
-        }
+      setFeedback(result.message);
+      setFeedbackType(result.success ? 'success' : 'error');
+      if (result.success) {
+        setSubmitCooldown(5);
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
     } else {
-        setFeedback('Errore bat gertatu da bidalketan.');
-        setFeedbackType('error');
+      setFeedback('Errore bat gertatu da bidalketan.');
+      setFeedbackType('error');
     }
   };
 
@@ -79,7 +79,7 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
         onClick={onClose}
         className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"
       />
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -87,12 +87,13 @@ const SubmitJokeModal: React.FC<SubmitJokeModalProps> = ({ isOpen, onClose, onSu
         className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-basque-red" />
-        
+
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-stone-900">Bidali Zure Txistea</h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-stone-400 hover:text-stone-600 transition-colors"
+            aria-label="Itxi"
           >
             <X size={24} />
           </button>

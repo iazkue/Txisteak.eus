@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto">
         <p className="text-sm">&copy; {new Date().getFullYear()} <a href="https://github.com/iazkue">@iazkue</a>, eskubide guztiak erreserbatuta.</p>
         <p className="text-sm"></p>
-        <p className="text-xs mt-2 opacity-50 italic">Txisteak egile bakoitzaren jabetzakoak dira. Txisteak.eus-ek ez du bere gain hartzen erabiltzaileek bidalitako edukien jatorrizkotasunaren ardura. Edukiren batek egile-eskubideak urratzen dituela uste baduzu, jarri gurekin harremanetan, mesedez: gu@txisteak.eus</p>
+        <p className="text-xs mt-2 opacity-75 italic">Txisteak egile bakoitzaren jabetzakoak dira. Txisteak.eus-ek ez du bere gain hartzen erabiltzaileek bidalitako edukien jatorrizkotasunaren ardura. Edukiren batek egile-eskubideak urratzen dituela uste baduzu, jarri gurekin harremanetan, mesedez: <a href="mailto:gu@txisteak.eus" className="underline hover:text-stone-200 transition-colors">gu@txisteak.eus</a></p>
       </div>
     </footer>
   );
