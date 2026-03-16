@@ -7,7 +7,7 @@ import RankingList from './components/RankingList';
 const SubmitJokeModal = lazy(() => import('./components/SubmitJokeModal'));
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
-import { Trophy, Calendar, Users, Info } from 'lucide-react';
+import { Trophy, Calendar, Users, Info, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Button from './components/Button';
 
 const App: React.FC = () => {
@@ -39,6 +39,11 @@ const App: React.FC = () => {
   const [hasMoreMonthlyJokes, setHasMoreMonthlyJokes] = useState<boolean>(false);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  // Pagination states
+  const [visibleJokesCount, setVisibleJokesCount] = useState<number>(6);
+  const [visibleMonthlyJokesCount, setVisibleMonthlyJokesCount] = useState<number>(6);
+  const [visibleSubmittersCount, setVisibleSubmittersCount] = useState<number>(6);
 
   useEffect(() => {
     if (voteCooldown > 0) {
@@ -88,7 +93,6 @@ const App: React.FC = () => {
       setJokeRanking([]);
     } else {
       setJokeRanking(jokeRankData.jokes);
-      setHasMoreJokes(false);
     }
     setJokeRankingLoading(false);
 
@@ -98,7 +102,6 @@ const App: React.FC = () => {
       setSubmitterRanking([]);
     } else {
       setSubmitterRanking(submitterRankData.submitters);
-      setHasMoreSubmitters(false);
     }
     setSubmitterRankingLoading(false);
 
@@ -108,7 +111,6 @@ const App: React.FC = () => {
       setMonthlyJokeRanking([]);
     } else {
       setMonthlyJokeRanking(monthlyRankData.jokes);
-      setHasMoreMonthlyJokes(false);
     }
     setMonthlyJokeRankingLoading(false);
   }, []);
@@ -164,19 +166,18 @@ const App: React.FC = () => {
   };
 
   // --- Load More Handlers for Rankings ---
-  const handleLoadMoreJokes = async () => {
-    // Simplified for now
+  const handleLoadMoreJokes = () => {
+    setVisibleJokesCount(prev => prev + 6);
   };
 
-  const handleLoadMoreSubmitters = async () => {
-    // Simplified for now
+  const handleLoadMoreSubmitters = () => {
+    setVisibleSubmittersCount(prev => prev + 6);
   };
 
-  const handleLoadMoreMonthlyJokes = async () => {
-    // Simplified for now
+  const handleLoadMoreMonthlyJokes = () => {
+    setVisibleMonthlyJokesCount(prev => prev + 6);
   };
 
-  // --- Render Item Functions ---
   const renderJokeRankingItem = (joke: Joke, index: number) => (
     <div key={joke.id} className="group">
       <div className="flex items-start gap-4">
@@ -190,10 +191,19 @@ const App: React.FC = () => {
               <span className="text-basque-red">★</span>
               {(joke.puntuazioa ?? 0).toFixed(2)}
             </span>
-            <span>👍 {joke.boto_positiboak}</span>
-            <span>👎 {joke.boto_negatiboak}</span>
+            <span className="flex items-center gap-1">
+              <ThumbsUp size={10} className="text-stone-400" />
+              {joke.boto_positiboak}
+            </span>
+            <span className="flex items-center gap-1">
+              <ThumbsDown size={10} className="text-stone-400" />
+              {joke.boto_negatiboak}
+            </span>
             {joke.submitted_by_izena && (
-              <span className="text-stone-500">✍️ {joke.submitted_by_izena}</span>
+              <span className="text-stone-500 flex items-center gap-1">
+                <span>✏️</span>
+                {joke.submitted_by_izena} {joke.submitted_by_abizenak}
+              </span>
             )}
           </div>
         </div>
@@ -250,11 +260,11 @@ const App: React.FC = () => {
               </div>
               <RankingList<Joke>
                 title="Txiste Onenen Sailkapena"
-                items={jokeRanking}
+                items={jokeRanking.slice(0, visibleJokesCount)}
                 renderItem={renderJokeRankingItem}
                 isLoading={jokeRankingLoading}
                 onLoadMore={handleLoadMoreJokes}
-                hasMore={hasMoreJokes}
+                hasMore={jokeRanking.length > visibleJokesCount}
                 error={jokeRankingError}
               />
             </section>
@@ -268,11 +278,11 @@ const App: React.FC = () => {
               </div>
               <RankingList<Joke>
                 title="Azken hilabeteko txiste onenak"
-                items={monthlyJokeRanking}
+                items={monthlyJokeRanking.slice(0, visibleMonthlyJokesCount)}
                 renderItem={renderJokeRankingItem}
                 isLoading={monthlyJokeRankingLoading}
                 onLoadMore={handleLoadMoreMonthlyJokes}
-                hasMore={hasMoreMonthlyJokes}
+                hasMore={monthlyJokeRanking.length > visibleMonthlyJokesCount}
                 error={monthlyJokeRankingError}
               />
             </section>
@@ -286,11 +296,11 @@ const App: React.FC = () => {
               </div>
               <RankingList<Submitter>
                 title="Txistegile Onenen Sailkapena"
-                items={submitterRanking}
+                items={submitterRanking.slice(0, visibleSubmittersCount)}
                 renderItem={renderSubmitterRankingItem}
                 isLoading={submitterRankingLoading}
                 onLoadMore={handleLoadMoreSubmitters}
-                hasMore={hasMoreSubmitters}
+                hasMore={submitterRanking.length > visibleSubmittersCount}
                 error={submitterRankingError}
               />
             </section>

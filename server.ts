@@ -18,8 +18,8 @@ const connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.spl
 
 const pool = new Pool({
   connectionString,
-  ssl: connectionString?.includes('sslmode=require') || connectionString?.includes('neon.tech') 
-    ? { rejectUnauthorized: false } 
+  ssl: connectionString?.includes('sslmode=require') || connectionString?.includes('neon.tech')
+    ? { rejectUnauthorized: false }
     : false,
 });
 
@@ -130,7 +130,7 @@ app.get("/api/jokes/ranking", async (req, res) => {
       FROM jokes 
       WHERE boto_positiboak > 0
       ORDER BY puntuazioa DESC, boto_positiboak DESC 
-      LIMIT 20
+      LIMIT 100
     `);
     res.json(rows);
   } catch (err: any) {
@@ -147,7 +147,7 @@ app.get("/api/jokes/monthly", async (req, res) => {
       FROM jokes 
       WHERE created_at > NOW() - INTERVAL '1 month' AND boto_positiboak > 0
       ORDER BY puntuazioa DESC, boto_positiboak DESC 
-      LIMIT 20
+      LIMIT 100
     `);
     res.json(rows);
   } catch (err: any) {
@@ -169,7 +169,7 @@ app.get("/api/submitters/ranking", async (req, res) => {
       FROM jokes 
       GROUP BY email, izena, abizenak
       ORDER BY txiste_kopurua DESC, puntuazio_batazbestekoa DESC
-      LIMIT 20
+      LIMIT 100
     `);
     res.json(rows);
   } catch (err: any) {
@@ -207,10 +207,10 @@ app.post("/api/jokes/:id/vote", async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    
+
     const voteCol = type === 'gora' ? 'boto_positiboak' : 'boto_negatiboak';
     await client.query(`UPDATE jokes SET ${voteCol} = ${voteCol} + 1 WHERE id = $1`, [id]);
-    
+
     await client.query(`
       UPDATE jokes 
       SET puntuazioa = (CAST(boto_positiboak AS FLOAT) + 1.0) / (CAST(boto_positiboak + boto_negatiboak AS FLOAT) + 2.0) * 100
@@ -218,7 +218,7 @@ app.post("/api/jokes/:id/vote", async (req, res) => {
     `, [id]);
 
     await client.query("INSERT INTO votes (joke_id, vote_type, ip_address) VALUES ($1, $2, $3)", [id, type, req.ip]);
-    
+
     await client.query("COMMIT");
     res.json({ success: true, message: "Botoa ondo jaso da!" });
   } catch (err: any) {

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Joke, VoteType } from '../types';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { ThumbsUp, ThumbsDown, User, MapPin } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Pencil, MapPin } from 'lucide-react';
 
 interface JokeDisplayProps {
   joke: Joke | null;
@@ -66,7 +66,7 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
               {joke.submitted_by_izena && (
                 <div className="flex items-center justify-center gap-4 text-sm text-stone-500 mb-8">
                   <div className="flex items-center gap-1">
-                    <User size={14} className="text-basque-red" />
+                    <span className="text-basque-red text-xs">✏️</span>
                     <span className="font-medium">{joke.submitted_by_izena} {joke.submitted_by_abizenak}</span>
                   </div>
                   {joke.submitted_by_pueblo && (
