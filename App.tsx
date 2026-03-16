@@ -218,7 +218,10 @@ const App: React.FC = () => {
           {index + 1}
         </span>
         <div className="flex-grow">
-          <p className="text-stone-800 font-bold">{submitter.izena} {submitter.abizenak}</p>
+          <p className="text-stone-800 font-bold">
+            <span className="text-stone-400 mr-2 text-xs">✏️</span>
+            {submitter.izena} {submitter.abizenak}
+          </p>
           <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider text-stone-600">
             <span>{submitter.txiste_kopurua} Txiste</span>
             <span className="w-1 h-1 bg-stone-300 rounded-full" />
@@ -330,7 +333,7 @@ const App: React.FC = () => {
               <div className="space-y-4 text-stone-600 leading-relaxed">
                 <p>Ongi etorri <span className="font-bold text-basque-red">Txisteak.eus</span> webgunera! Hemen euskarazko txisteak partekatu eta baloratu ditzakezu.</p>
                 <p>Webgunea Xanti eta Iñaki lagunen(txistegile amorratuak) umore beharra asetzeko nahiarekin sortu zen. Helburua umore ona zabaltzea eta gure hizkuntzan txiste bilduma dibertigarri bat sortzea da.</p>
-                <p>Bozkatu gustuko dituzun txisteak eta bidali zurea komunitatearekin partekatzeko!</p>
+                <p>Bozkatu gustuko dituzun txisteak y bidali zurea komunitatearekin partekatzeko!</p>
                 <div className="pt-4 border-t border-stone-100 text-xs italic">
                   Gogoratu, txiste berriak berrikusi egingo dira argitaratu aurretik.
                 </div>
