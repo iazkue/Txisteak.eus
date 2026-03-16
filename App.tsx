@@ -234,7 +234,12 @@ const App: React.FC = () => {
       <Header onOpenSubmitModal={() => setIsModalOpen(true)} />
 
       <main className="container mx-auto px-4 py-12 flex-grow max-w-6xl">
-        <div className="mb-16 animate-fade-in-up">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-16"
+        >
           <JokeDisplay
             joke={currentJoke}
             isLoading={jokeLoading}
@@ -245,11 +250,14 @@ const App: React.FC = () => {
             isVoting={isVoting}
             cooldown={voteCooldown}
           />
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div
-            className="lg:col-span-2 space-y-8 animate-fade-in-up animate-delay-200"
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 space-y-8"
           >
             <section className="glass-card p-8">
               <div className="flex items-center gap-3 mb-8">
@@ -304,10 +312,13 @@ const App: React.FC = () => {
                 error={submitterRankingError}
               />
             </section>
-          </div>
+          </motion.div>
 
-          <aside
-            className="space-y-8 animate-fade-in-up animate-delay-400"
+          <motion.aside
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-8"
           >
             <section id="honi-buruz-atala" className="glass-card p-8 sticky top-24">
               <div className="flex items-center gap-3 mb-6">
@@ -325,7 +336,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             </section>
-          </aside>
+          </motion.aside>
         </div>
       </main>
 
