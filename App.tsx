@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import JokeDisplay from './components/JokeDisplay';
 import RankingList from './components/RankingList';
-import SubmitJokeModal from './components/SubmitJokeModal';
+const SubmitJokeModal = lazy(() => import('./components/SubmitJokeModal'));
 import { Joke, Submitter, SubmitJokePayload, VoteType } from './types';
 import * as api from './services/api';
 import { Trophy, Calendar, Users, Info } from 'lucide-react';
@@ -68,10 +68,21 @@ const App: React.FC = () => {
   }, []);
 
   const loadInitialRankings = useCallback(async () => {
-    // Joke Ranking
+    // Start all ranking fetches in parallel
     setJokeRankingLoading(true);
     setJokeRankingError(null);
-    const jokeRankData = await api.fetchJokeRanking();
+    setSubmitterRankingLoading(true);
+    setSubmitterRankingError(null);
+    setMonthlyJokeRankingLoading(true);
+    setMonthlyJokeRankingError(null);
+
+    const [jokeRankData, submitterRankData, monthlyRankData] = await Promise.all([
+      api.fetchJokeRanking(),
+      api.fetchSubmitterRanking(),
+      api.fetchMonthlyBestJokes(),
+    ]);
+
+    // Joke Ranking
     if ('error' in jokeRankData) {
       setJokeRankingError(jokeRankData.error);
       setJokeRanking([]);
@@ -82,9 +93,6 @@ const App: React.FC = () => {
     setJokeRankingLoading(false);
 
     // Submitter Ranking
-    setSubmitterRankingLoading(true);
-    setSubmitterRankingError(null);
-    const submitterRankData = await api.fetchSubmitterRanking();
     if ('error' in submitterRankData) {
       setSubmitterRankingError(submitterRankData.error);
       setSubmitterRanking([]);
@@ -95,9 +103,6 @@ const App: React.FC = () => {
     setSubmitterRankingLoading(false);
 
     // Monthly Joke Ranking
-    setMonthlyJokeRankingLoading(true);
-    setMonthlyJokeRankingError(null);
-    const monthlyRankData = await api.fetchMonthlyBestJokes();
     if ('error' in monthlyRankData) {
       setMonthlyJokeRankingError(monthlyRankData.error);
       setMonthlyJokeRanking([]);
@@ -106,7 +111,6 @@ const App: React.FC = () => {
       setHasMoreMonthlyJokes(false);
     }
     setMonthlyJokeRankingLoading(false);
-
   }, []);
 
 
@@ -176,12 +180,12 @@ const App: React.FC = () => {
   const renderJokeRankingItem = (joke: Joke, index: number) => (
     <div key={joke.id} className="group">
       <div className="flex items-start gap-4">
-        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-100 text-stone-500 rounded-lg text-sm font-bold group-hover:bg-basque-red group-hover:text-white transition-colors">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-200 text-stone-700 rounded-lg text-sm font-bold group-hover:bg-basque-red group-hover:text-white transition-colors">
           {index + 1}
         </span>
         <div className="flex-grow min-w-0">
           <p className="text-stone-800 mb-2 whitespace-pre-wrap">{joke.testua}</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-wider text-stone-400">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium uppercase tracking-wider text-stone-600">
             <span className="flex items-center gap-1">
               <span className="text-basque-red">★</span>
               {(joke.puntuazioa ?? 0).toFixed(2)}
@@ -189,7 +193,7 @@ const App: React.FC = () => {
             <span>👍 {joke.boto_positiboak}</span>
             <span>👎 {joke.boto_negatiboak}</span>
             {joke.submitted_by_izena && (
-              <span className="text-stone-300">✍️ {joke.submitted_by_izena}</span>
+              <span className="text-stone-500">✍️ {joke.submitted_by_izena}</span>
             )}
           </div>
         </div>
@@ -200,14 +204,14 @@ const App: React.FC = () => {
   const renderSubmitterRankingItem = (submitter: Submitter, index: number) => (
     <div key={submitter.id} className="group">
       <div className="flex items-center gap-4">
-        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-100 text-stone-500 rounded-lg text-sm font-bold group-hover:bg-blue-500 group-hover:text-white transition-colors">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-stone-200 text-stone-700 rounded-lg text-sm font-bold group-hover:bg-blue-500 group-hover:text-white transition-colors">
           {index + 1}
         </span>
         <div className="flex-grow">
           <p className="text-stone-800 font-bold">{submitter.izena} {submitter.abizenak}</p>
-          <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider text-stone-400">
+          <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider text-stone-600">
             <span>{submitter.txiste_kopurua} Txiste</span>
-            <span className="w-1 h-1 bg-stone-200 rounded-full" />
+            <span className="w-1 h-1 bg-stone-300 rounded-full" />
             <span>Batezbestekoa: {submitter.puntuazio_batazbestekoa.toFixed(2)}</span>
           </div>
         </div>
@@ -330,11 +334,13 @@ const App: React.FC = () => {
 
       <AnimatePresence>
         {isModalOpen && (
-          <SubmitJokeModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSubmit={handleSubmitJoke}
-          />
+          <Suspense fallback={null}>
+            <SubmitJokeModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSubmit={handleSubmitJoke}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </div>
