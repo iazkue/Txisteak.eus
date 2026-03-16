@@ -189,7 +189,7 @@ const App: React.FC = () => {
             <span>👍 {joke.boto_positiboak}</span>
             <span>👎 {joke.boto_negatiboak}</span>
             {joke.submitted_by_izena && (
-              <span className="text-stone-300">Bidalia: {joke.submitted_by_izena}</span>
+              <span className="text-stone-300">✍️ {joke.submitted_by_izena}</span>
             )}
           </div>
         </div>

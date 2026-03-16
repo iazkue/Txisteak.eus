@@ -107,7 +107,10 @@ app.get("/api/jokes/random", async (req, res) => {
   console.log("GET /api/jokes/random");
   try {
     const { rows } = await pool.query(`
-      SELECT * FROM jokes 
+      SELECT 
+        id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email
+      FROM jokes 
       WHERE boto_positiboak > 0 
       ORDER BY RANDOM() * puntuazioa DESC 
       LIMIT 1
@@ -123,7 +126,10 @@ app.get("/api/jokes/ranking", async (req, res) => {
   console.log("GET /api/jokes/ranking");
   try {
     const { rows } = await pool.query(`
-      SELECT *, (boto_positiboak - boto_negatiboak) as net_votes 
+      SELECT 
+        id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email,
+        (boto_positiboak - boto_negatiboak) as net_votes 
       FROM jokes 
       WHERE boto_positiboak > 0
       ORDER BY puntuazioa DESC, boto_positiboak DESC 
@@ -140,7 +146,10 @@ app.get("/api/jokes/monthly", async (req, res) => {
   console.log("GET /api/jokes/monthly");
   try {
     const { rows } = await pool.query(`
-      SELECT *, (boto_positiboak - boto_negatiboak) as net_votes 
+      SELECT 
+        id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email,
+        (boto_positiboak - boto_negatiboak) as net_votes 
       FROM jokes 
       WHERE created_at > NOW() - INTERVAL '31 days' AND boto_positiboak > 0
       ORDER BY puntuazioa DESC, boto_positiboak DESC 
