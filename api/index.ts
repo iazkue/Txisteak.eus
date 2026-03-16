@@ -5,6 +5,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -20,6 +21,45 @@ const pool = new Pool({
     ? { rejectUnauthorized: false }
     : false,
 });
+
+async function sendDiscordNotification(joke: any) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [{
+          title: "🚀 Txiste berria jaso da!",
+          color: 0xe63946, // Basque Red
+          fields: [
+            { name: "📝 Testua", value: joke.testua },
+            { name: "👤 Egilea", value: `${joke.izena} ${joke.abizenak}`, inline: true },
+            { name: "📍 Herria", value: joke.pueblo, inline: true },
+            { name: "📧 Email", value: joke.email, inline: true }
+          ],
+          timestamp: new Date().toISOString()
+        }]
+      })
+    });
+    if (response.ok) {
+      console.log("Discord notification sent successfully.");
+    } else {
+      console.error("Discord notification failed:", await response.text());
+    }
+  } catch (err) {
+    console.error("Error sending Discord notification:", err);
+  }
+}
+
+async function notifyNewJoke(joke: any) {
+  // Try both methods
+  await Promise.allSettled([
+    sendDiscordNotification(joke)
+  ]);
+}
 
 const app = express();
 
@@ -195,6 +235,10 @@ app.post("/api/jokes", async (req, res) => {
       "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak, puntuazioa) VALUES ($1, $2, $3, $4, $5, 1, 0.333) RETURNING *",
       [testua, email, izena, abizenak, pueblo]
     );
+
+    // Send notification asynchronously
+    notifyNewJoke(rows[0]);
+
     res.json({ success: true, message: "Txistea ondo bidali da! Moderazioaren zain dago.", joke: rows[0] });
   } catch (err: any) {
     console.error("Error submitting joke:", err);
