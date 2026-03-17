@@ -5,7 +5,6 @@ import pg from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
-import nodemailer from "nodemailer";
 
 dotenv.config();
 
