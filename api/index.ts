@@ -5,7 +5,6 @@ import pg from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
-import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -151,8 +150,8 @@ app.get("/api/jokes/random", async (req, res) => {
         id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
         izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email
       FROM jokes 
-      WHERE boto_positiboak > 0 
-      ORDER BY RANDOM() * puntuazioa DESC 
+      WHERE boto_positiboak > 0 AND puntuazioa > 0
+      ORDER BY -ln(1.0 - random()) / puntuazioa ASC 
       LIMIT 1
     `);
     res.json(rows[0] || null);
