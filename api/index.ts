@@ -13,7 +13,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.split('&channel_binding=')[0] : undefined;
+let connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.split('&channel_binding=')[0] : undefined;
+if (connectionString && connectionString.includes('sslmode=require')) {
+  connectionString = connectionString.replace('sslmode=require', 'sslmode=require&uselibpqcompat=true');
+}
 
 const pool = new Pool({
   connectionString,
@@ -94,11 +97,13 @@ async function initDb() {
         ip_address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-
-      ALTER TABLE jokes ADD COLUMN IF NOT EXISTS submitter_ip TEXT;
-      ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_address TEXT;
-      CREATE INDEX IF NOT EXISTS idx_votes_joke_ip ON votes(joke_id, ip_address);
     `);
+
+    // Run safe independent migrations so a failure in one doesn't roll back the others
+    try { await client.query(`ALTER TABLE jokes ADD COLUMN IF NOT EXISTS submitter_ip TEXT;`); } catch (e) { console.error('Migration error (submitter_ip):', e); }
+    try { await client.query(`ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_address TEXT;`); } catch (e) { console.error('Migration error (ip_address):', e); }
+    try { await client.query(`CREATE INDEX IF NOT EXISTS idx_votes_joke_ip ON votes(joke_id, ip_address);`); } catch (e) { console.error('Migration error (index):', e); }
+
     console.log("Database initialized successfully.");
   } catch (err) {
     console.error("Error initializing database:", err);
