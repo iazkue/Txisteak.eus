@@ -5,6 +5,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ async function notifyNewJoke(joke: any) {
 }
 
 const app = express();
+app.set("trust proxy", 1);
 
 async function initDb() {
   console.log("Initializing database...");
@@ -81,7 +83,8 @@ async function initDb() {
         boto_positiboak INTEGER DEFAULT 0,
         boto_negatiboak INTEGER DEFAULT 0,
         puntuazioa FLOAT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        submitter_ip TEXT
       );
 
       CREATE TABLE IF NOT EXISTS votes (
@@ -91,6 +94,16 @@ async function initDb() {
         ip_address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE jokes ADD COLUMN IF NOT EXISTS submitter_ip TEXT;
+      ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_address TEXT;
+      
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_vote') THEN
+          ALTER TABLE votes ADD CONSTRAINT unique_vote UNIQUE (joke_id, ip_address);
+        END IF;
+      END $$;
     `);
     console.log("Database initialized successfully.");
   } catch (err) {
@@ -148,7 +161,7 @@ app.get("/api/jokes/random", async (req, res) => {
     const { rows } = await pool.query(`
       SELECT 
         id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
-        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo
       FROM jokes 
       WHERE boto_positiboak > 0 AND puntuazioa > 0
       ORDER BY -ln(1.0 - random()) / puntuazioa ASC 
@@ -167,7 +180,7 @@ app.get("/api/jokes/ranking", async (req, res) => {
     const { rows } = await pool.query(`
       SELECT 
         id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
-        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo,
         (boto_positiboak - boto_negatiboak) as net_votes 
       FROM jokes 
       WHERE boto_positiboak > 0
@@ -187,7 +200,7 @@ app.get("/api/jokes/monthly", async (req, res) => {
     const { rows } = await pool.query(`
       SELECT 
         id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
-        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo, email as submitted_by_email,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo,
         (boto_positiboak - boto_negatiboak) as net_votes 
       FROM jokes 
       WHERE created_at > NOW() - INTERVAL '31 days' AND boto_positiboak > 0
@@ -206,7 +219,7 @@ app.get("/api/submitters/ranking", async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT 
-        email as id, 
+        MD5(email) as id, 
         izena, 
         abizenak, 
         COUNT(*) as txiste_kopurua, 
@@ -223,16 +236,30 @@ app.get("/api/submitters/ranking", async (req, res) => {
   }
 });
 
-app.post("/api/jokes", async (req, res) => {
+const jokeSubmitLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 5, // Limit each IP to 5 jokes
+  message: { success: false, message: "Eguneko txiste muga gainditu duzu. Saiatu bihar!" }
+});
+
+app.post("/api/jokes", jokeSubmitLimiter, async (req, res) => {
   console.log("POST /api/jokes", req.body);
+
+  if (req.body.boto_positiboak !== undefined || req.body.boto_negatiboak !== undefined || req.body.puntuazioa !== undefined) {
+    return res.status(400).json({ success: false, message: "Ezin dira botoak edo puntuazioa bidali." });
+  }
+
   const { testua, email, izena, abizenak, pueblo } = req.body;
   if (!testua || !email || !izena || !abizenak || !pueblo) {
     return res.status(400).json({ success: false, message: "Eremu guztiak bete behar dira." });
   }
+
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '127.0.0.1').toString().split(',')[0].trim();
+
   try {
     const { rows } = await pool.query(
-      "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak, puntuazioa) VALUES ($1, $2, $3, $4, $5, 1, 0.333) RETURNING *",
-      [testua, email, izena, abizenak, pueblo]
+      "INSERT INTO jokes (testua, email, izena, abizenak, pueblo, boto_negatiboak, puntuazioa, submitter_ip) VALUES ($1, $2, $3, $4, $5, 1, 0.333, $6) RETURNING *",
+      [testua, email, izena, abizenak, pueblo, clientIp]
     );
 
     // Send notification asynchronously
@@ -245,7 +272,13 @@ app.post("/api/jokes", async (req, res) => {
   }
 });
 
-app.post("/api/jokes/:id/vote", async (req, res) => {
+const jokeVoteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 30, // Limit each IP to 30 votes per hour
+  message: { success: false, message: "Boto gehiegi denbora gutxian. Itxaron pixka bat." }
+});
+
+app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
   console.log(`POST /api/jokes/${req.params.id}/vote`, req.body);
   const { id } = req.params;
   const { type } = req.body;
@@ -253,9 +286,23 @@ app.post("/api/jokes/:id/vote", async (req, res) => {
     return res.status(400).json({ success: false, message: "Boto mota okerra." });
   }
 
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '127.0.0.1').toString().split(',')[0].trim();
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+
+    // Check: Prevent self-voting
+    const jokeQuery = await client.query("SELECT submitter_ip FROM jokes WHERE id = $1 FOR UPDATE", [id]);
+    if (jokeQuery.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ success: false, message: "Txistea ez da aurkitu." });
+    }
+    if (jokeQuery.rows[0].submitter_ip === clientIp) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: "Ezin diozu zure txisteari bozkatu." });
+    }
+
     const voteCol = type === 'gora' ? 'boto_positiboak' : 'boto_negatiboak';
     await client.query(`
       UPDATE jokes 
@@ -265,12 +312,15 @@ app.post("/api/jokes/:id/vote", async (req, res) => {
                      (CAST(boto_positiboak + boto_negatiboak + 1 AS FLOAT) + 2.0)
       WHERE id = $1
     `, [id]);
-    await client.query("INSERT INTO votes (joke_id, vote_type, ip_address) VALUES ($1, $2, $3)", [id, type, req.ip]);
+    await client.query("INSERT INTO votes (joke_id, vote_type, ip_address) VALUES ($1, $2, $3)", [id, type, clientIp]);
     await client.query("COMMIT");
     res.json({ success: true, message: "Botoa ondo jaso da!" });
   } catch (err: any) {
     await client.query("ROLLBACK");
     console.error("Error voting:", err);
+    if (err.code === '23505') {
+      return res.status(400).json({ success: false, message: "Dagoeneko bozkatu duzu txiste hau." });
+    }
     res.status(500).json({ success: false, message: "Errorea bozkatzean.", details: err.message });
   } finally {
     client.release();
