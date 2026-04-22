@@ -97,13 +97,7 @@ async function initDb() {
 
       ALTER TABLE jokes ADD COLUMN IF NOT EXISTS submitter_ip TEXT;
       ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_address TEXT;
-      
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_vote') THEN
-          ALTER TABLE votes ADD CONSTRAINT unique_vote UNIQUE (joke_id, ip_address);
-        END IF;
-      END $$;
+      CREATE INDEX IF NOT EXISTS idx_votes_joke_ip ON votes(joke_id, ip_address);
     `);
     console.log("Database initialized successfully.");
   } catch (err) {
@@ -301,6 +295,12 @@ app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
     if (jokeQuery.rows[0].submitter_ip === clientIp) {
       await client.query("ROLLBACK");
       return res.status(400).json({ success: false, message: "Ezin diozu zure txisteari bozkatu." });
+    }
+
+    const voteCheck = await client.query("SELECT 1 FROM votes WHERE joke_id = $1 AND ip_address = $2 FOR UPDATE", [id, clientIp]);
+    if (voteCheck.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: "Dagoeneko bozkatu duzu txiste hau." });
     }
 
     const voteCol = type === 'gora' ? 'boto_positiboak' : 'boto_negatiboak';
