@@ -82,8 +82,7 @@ const getClientIp = (req: any) => {
 async function initDb() {
   console.log("Initializing database...");
   if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is missing!");
-    return;
+    console.warn("DATABASE_URL is missing! Proceeding with default local Postgres connection settings.");
   }
   const client = await pool.connect();
   try {
@@ -167,18 +166,39 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.get("/api/jokes/random", async (req, res) => {
-  console.log("GET /api/jokes/random");
+  const clientIp = getClientIp(req);
+  console.log(`GET /api/jokes/random for IP: ${clientIp}`);
   try {
+    // 1. Try to fetch a joke the user hasn't voted on and hasn't submitted
     const { rows } = await pool.query(`
       SELECT 
         id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
         izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo
       FROM jokes 
       WHERE boto_positiboak > 0 AND puntuazioa > 0
+        AND id NOT IN (SELECT joke_id FROM votes WHERE ip_address = $1)
+        AND (submitter_ip IS NULL OR submitter_ip != $1)
       ORDER BY -ln(1.0 - random()) / puntuazioa ASC 
       LIMIT 1
+    `, [clientIp]);
+
+    if (rows.length > 0) {
+      return res.json(rows[0]);
+    }
+
+    // 2. Fallback: User has seen/voted all available valid jokes, just return any random joke
+    console.log(`IP ${clientIp} exhausted all unseen jokes, returning fallback random joke.`);
+    const fallbackRes = await pool.query(`
+      SELECT 
+        id, testua, boto_positiboak, boto_negatiboak, puntuazioa, created_at as sortze_data,
+        izena as submitted_by_izena, abizenak as submitted_by_abizenak, pueblo as submitted_by_pueblo
+      FROM jokes 
+      WHERE boto_positiboak > 0 AND puntuazioa > 0
+      ORDER BY random() 
+      LIMIT 1
     `);
-    res.json(rows[0] || null);
+
+    res.json(fallbackRes.rows[0] || null);
   } catch (err: any) {
     console.error("Error fetching random joke:", err);
     res.status(500).json({ error: "Errorea txistea lortzean", details: err.message });
