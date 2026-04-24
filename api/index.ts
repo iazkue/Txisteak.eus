@@ -14,8 +14,8 @@ const __dirname = path.dirname(__filename);
 
 const { Pool } = pg;
 let connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.split('&channel_binding=')[0] : undefined;
-if (connectionString && connectionString.includes('sslmode=require')) {
-  connectionString = connectionString.replace('sslmode=require', 'sslmode=require&uselibpqcompat=true');
+if (connectionString && connectionString.includes('sslmode=require') && !connectionString.includes('uselibpqcompat=')) {
+  connectionString = connectionString.replace('sslmode=require', 'uselibpqcompat=true&sslmode=require');
 }
 
 const pool = new Pool({
@@ -65,7 +65,19 @@ async function notifyNewJoke(joke: any) {
 }
 
 const app = express();
-app.set("trust proxy", 1);
+// Enable proxy trust to correctly get IPs behind Vercel/CDN
+app.set("trust proxy", true);
+
+// Utility for robust IP extraction
+const getClientIp = (req: any) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  const real = req.headers['x-real-ip'];
+  const ipString = forwarded || real;
+  if (ipString) {
+    return Array.isArray(ipString) ? ipString[0].trim() : ipString.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || '127.0.0.1';
+};
 
 async function initDb() {
   console.log("Initializing database...");
@@ -253,7 +265,7 @@ app.post("/api/jokes", jokeSubmitLimiter, async (req, res) => {
     return res.status(400).json({ success: false, message: "Eremu guztiak bete behar dira." });
   }
 
-  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '127.0.0.1').toString().split(',')[0].trim();
+  const clientIp = getClientIp(req);
 
   try {
     const { rows } = await pool.query(
@@ -285,7 +297,7 @@ app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
     return res.status(400).json({ success: false, message: "Boto mota okerra." });
   }
 
-  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '127.0.0.1').toString().split(',')[0].trim();
+  const clientIp = getClientIp(req);
 
   const client = await pool.connect();
   try {
@@ -295,10 +307,12 @@ app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
     const jokeQuery = await client.query("SELECT submitter_ip FROM jokes WHERE id = $1 FOR UPDATE", [id]);
     if (jokeQuery.rows.length === 0) {
       await client.query("ROLLBACK");
+      console.log(`Vote blocked: Joke ${id} not found.`);
       return res.status(404).json({ success: false, message: "Txistea ez da aurkitu." });
     }
     if (jokeQuery.rows[0].submitter_ip === clientIp) {
       await client.query("ROLLBACK");
+      console.log(`Vote blocked for joke ${id}: Submitter IP matches voter IP (${clientIp}).`);
       return res.status(400).json({ success: false, message: "Ezin diozu zure txisteari bozkatu." });
     }
 
