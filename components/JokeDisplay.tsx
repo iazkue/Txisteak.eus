@@ -21,8 +21,6 @@ const JokeDisplay: React.FC<JokeDisplayProps> = ({ joke, isLoading, error, onVot
     <section id="txiste-erakuslea" className="glass-card p-8 md:p-12 text-center relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-basque-red" />
 
-      <h2 className="text-sm font-bold uppercase tracking-widest text-stone-600 mb-8">Eguneko Txistea</h2>
-
       <div id="txiste-edukia" className="min-h-[200px] flex flex-col justify-center items-center mb-8">
         <AnimatePresence mode="wait">
           {isLoading ? (
