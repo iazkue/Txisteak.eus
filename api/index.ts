@@ -70,9 +70,11 @@ app.set("trust proxy", true);
 
 // Utility for robust IP extraction
 const getClientIp = (req: any) => {
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
   const forwarded = req.headers['x-forwarded-for'];
   const real = req.headers['x-real-ip'];
-  const ipString = forwarded || real;
+
+  const ipString = cfConnectingIp || forwarded || real;
   if (ipString) {
     return Array.isArray(ipString) ? ipString[0].trim() : ipString.split(',')[0].trim();
   }
@@ -333,7 +335,7 @@ app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
     if (jokeQuery.rows[0].submitter_ip === clientIp) {
       await client.query("ROLLBACK");
       console.log(`Vote blocked for joke ${id}: Submitter IP matches voter IP (${clientIp}).`);
-      return res.status(400).json({ success: false, message: "Ezin diozu zure txisteari bozkatu." });
+      return res.status(400).json({ success: false, message: "Ezin duzu zure txisteagatik bozkatu." });
     }
 
     const voteCheck = await client.query("SELECT 1 FROM votes WHERE joke_id = $1 AND ip_address = $2 FOR UPDATE", [id, clientIp]);
@@ -342,15 +344,18 @@ app.post("/api/jokes/:id/vote", jokeVoteLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: "Dagoeneko bozkatu duzu txiste hau." });
     }
 
-    const voteCol = type === 'gora' ? 'boto_positiboak' : 'boto_negatiboak';
+    const voteGora = type === 'gora' ? 1 : 0;
+    const voteBehera = type === 'behera' ? 1 : 0;
+
     await client.query(`
       UPDATE jokes 
       SET 
-        ${voteCol} = ${voteCol} + 1,
-        puntuazioa = (CAST(CASE WHEN '${type}' = 'gora' THEN boto_positiboak + 1 ELSE boto_positiboak END AS FLOAT) + 1.0) / 
+        boto_positiboak = boto_positiboak + $2::int,
+        boto_negatiboak = boto_negatiboak + $3::int,
+        puntuazioa = (CAST(boto_positiboak + $2::int AS FLOAT) + 1.0) / 
                      (CAST(boto_positiboak + boto_negatiboak + 1 AS FLOAT) + 2.0)
       WHERE id = $1
-    `, [id]);
+    `, [id, voteGora, voteBehera]);
     await client.query("INSERT INTO votes (joke_id, vote_type, ip_address) VALUES ($1, $2, $3)", [id, type, clientIp]);
     await client.query("COMMIT");
     res.json({ success: true, message: "Botoa ondo jaso da!" });

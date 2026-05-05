@@ -1,0 +1,184 @@
+{
+    "info": {
+        "_postman_id": "b1b11b1b-11b1-11b1-11b1-11b11b11b11b",
+        "name": "Txisteak API",
+        "description": "Postman collection para Txisteak.eus API. Incluye todas las rutas de la API.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/api/health",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "api",
+                        "health"
+                    ]
+                },
+                "description": "Comprueba si la API y la conexión a la base de datos están funcionando."
+            },
+            "response": []
+        },
+        {
+            "name": "Jokes",
+            "item": [
+                {
+                    "name": "Get Random Joke",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/jokes/random",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "jokes",
+                                "random"
+                            ]
+                        },
+                        "description": "Obtiene un txiste aleatorio que el usuario no haya visto ni votado. Si no hay ninguno, devuelve uno aleatorio general."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Jokes Ranking",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/jokes/ranking",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "jokes",
+                                "ranking"
+                            ]
+                        },
+                        "description": "Devuelve el top 20 de chistes."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Monthly Jokes",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/jokes/monthly",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "jokes",
+                                "monthly"
+                            ]
+                        },
+                        "description": "Devuelve el top 20 de chistes creados en el último mes."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Joke",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"testua\": \"Hau txiste bat da\",\n  \"email\": \"iksu@adibide.eus\",\n  \"izena\": \"Ander\",\n  \"abizenak\": \"Arana\",\n  \"pueblo\": \"Bilbo\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/jokes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "jokes"
+                            ]
+                        },
+                        "description": "Crea o envía un nuevo txiste."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Vote Joke",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"gora\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/jokes/1/vote",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "jokes",
+                                "1",
+                                "vote"
+                            ]
+                        },
+                        "description": "Votar un chiste de manera positiva (`gora`) o negativa (`behera`). Nota: El `1` en la URL corresponde a la ID del chiste, lo puedes modificar a placer."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Submitters",
+            "item": [
+                {
+                    "name": "Get Submitters Ranking",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/submitters/ranking",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "submitters",
+                                "ranking"
+                            ]
+                        },
+                        "description": "Devuelve el top 20 de autores con mejores chistes."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        }
+    ]
+}
